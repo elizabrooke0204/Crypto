@@ -20,7 +20,7 @@ client = cbpro.AuthenticatedClient(api_key, api_secret, api_pass, api_url=url)
 
 # global variables initial parameters
 symbol = "LRC"
-timeSlice = "15min"
+timeSlice = "60min"
 outputSize = "compact"
 
 rsiPeriodLength = 4
@@ -58,7 +58,7 @@ def run_strategy_rsi_bb(symbol, timeSlice, output_size):
 		try:
 			# Runs strategy every 5 minutes
 			if (now.minute % 5) == 0:
-				#time.sleep(2)
+
 				# Get rates, high/low average, rsi values and bb bands
 				rates = get_historic_rates(symbol, timeSlice, outputSize)
 				ratesHl2 = pd.Series((rates["High"] + rates["Low"]).div(2).values, index=rates.index)
@@ -137,7 +137,7 @@ def run_strategy_rsi_bb(symbol, timeSlice, output_size):
 						buyLevel += 1
 
 				if stopLossLower > 0.0:
-					if (ratesLow[-1] * 0.98) > stopLossLower:
+					if (ratesLow[-1] * 0.975) > stopLossLower:
 						stopLossLower = ratesLow[-1] * 0.98
 					if ratesLow[-1] < stopLossLower:
 						print(Fore.RED + "---StopLoss Sell at {}---".format(now) + Style.RESET_ALL)
@@ -148,7 +148,7 @@ def run_strategy_rsi_bb(symbol, timeSlice, output_size):
 						buyLevel = 1
 
 				if stopLossUpper > 0.0:
-					if (ratesHigh[-1] * 1.02) < stopLossUpper:
+					if (ratesHigh[-1] * 1.025) < stopLossUpper:
 						stopLossUpper = ratesHigh[-1] * 1.02
 					if ratesHigh[-1] > stopLossUpper:
 						print(Fore.RED + "---StopLoss Buy at {}---".format(now) + Style.RESET_ALL)
