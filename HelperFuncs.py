@@ -6,6 +6,7 @@ import requests
 import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
+from auth_cred import (alpha_api_key)
 
 
 # --------------------------------- Trend indicators -----------------------------------
@@ -165,7 +166,7 @@ def get_historic_rates(symbol, timeSlice, output_size):
 	url = ("https://www.alphavantage.co/query?function=CRYPTO_INTRADAY&symbol=" + symbol
 		+ "&market=USD&interval=" + timeSlice
 		+ "&outputsize=" + output_size
-		+ "&apikey=314KHJPJO4SAWLT2")
+		+ "&apikey=" + alpha_api_key)
 	#pd.set_option("display.max_rows", None, "display.max_colwidth", None)
 
 	# Reads in data, parse into json format, save only time series data eliminating meta data
