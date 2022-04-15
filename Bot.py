@@ -23,11 +23,11 @@ symbol = "LRC"
 timeSlice = "15min"
 outputSize = "compact"
 
-rsiPeriodLength = 5
-rsiUpperBound = 68.0
-rsiLowerBound = 26.0
-bbPeriodLength = 19
-bbLevel = 2.5
+rsiPeriodLength = 4
+rsiUpperBound = 82.0
+rsiLowerBound = 30.0
+bbPeriodLength = 4
+bbLevel = 3.0
 
 inSellPeriod = False
 inBuyPeriod = False
@@ -49,6 +49,8 @@ def run_strategy_rsi_bb(symbol, timeSlice, output_size):
 	global bbSignal
 	sellLevel = 1
 	buyLevel = 1
+	stopLossUpper = 0.0
+	stopLossLower = 0.0
 
 	print("Strategy thread started")
 	while(1):
@@ -56,7 +58,7 @@ def run_strategy_rsi_bb(symbol, timeSlice, output_size):
 		try:
 			# Runs strategy every 5 minutes
 			if (now.minute % 5) == 0:
-				time.sleep(2)
+				#time.sleep(2)
 				# Get rates, high/low average, rsi values and bb bands
 				rates = get_historic_rates(symbol, timeSlice, outputSize)
 				ratesHl2 = pd.Series((rates["High"] + rates["Low"]).div(2).values, index=rates.index)
@@ -71,25 +73,19 @@ def run_strategy_rsi_bb(symbol, timeSlice, output_size):
 				bbLower = bbLower.tolist()[(bbPeriodLength - 1):]
 
 				# Determines sell, buy, or hold signals for rsi and bb
-				if ratesRsi[-2] > rsiUpperBound:
+				if ratesRsi[-1] > rsiUpperBound:
 					rsiSignal = "sell"
-				elif ratesRsi[-2] < rsiLowerBound:
+				elif ratesRsi[-1] < rsiLowerBound:
 					rsiSignal = "buy"
 				else:
 					rsiSignal = "hold"
 
-				if ratesHigh[-2] > bbUpper[-2]:
+				if ratesHigh[-1] > bbUpper[-1]:
 					bbSignal = "sell"
-				elif ratesLow[-2] < bbLower[-2]:
+				elif ratesLow[-1] < bbLower[-1]:
 					bbSignal = "buy"
 				else:
 					bbSignal = "hold"
-
-				print(Fore.YELLOW +
-					"{} - RSI: {} BB: {}".format(now.strftime("%m/%d - %H:%M:%S"),rsiSignal, bbSignal) +
-					Style.RESET_ALL)
-				print("   RSI: {:.3f}, Upper: {}, Lower: {}".format(ratesRsi[-2], rsiUpperBound, rsiLowerBound))
-				print("   bbUpper: {:.3f} - High: {:.3f} | Low: {:.3f} - bbLower: {:.3f}".format(bbUpper[-2], ratesHigh[-2], ratesLow[-2], bbLower[-2]))
 
 				# Determines sell, buy, or hold action for bot
 				if not inSellPeriod:
@@ -103,13 +99,17 @@ def run_strategy_rsi_bb(symbol, timeSlice, output_size):
 						inSellPeriod = False
 
 						if sellLevel == 1:
-							sellLRC(1.0/7.0)
+							sellLRC(1.0/3.0)
 							buyLevel = 1
 						elif sellLevel == 2:
 							sellLRC(1.0/2.0)
+							buyLevel = 1
 						elif sellLevel >= 3:
-							sellLRC(98.0/100.0)
+							sellLRC(99.0/100.0)
+							buyLevel = 2 
 
+						stopLossUpper = ratesHigh[-1] * 1.02
+						stopLossLower = 0.0
 						sellLevel += 1
 
 				if not inBuyPeriod:
@@ -123,14 +123,48 @@ def run_strategy_rsi_bb(symbol, timeSlice, output_size):
 						inBuyPeriod = False
 
 						if buyLevel == 1:
-							buyLRC(1.0/7.0)
+							buyLRC(1.0/3.0)
 							sellLevel = 1
 						elif buyLevel == 2:
 							buyLRC(1.0/2.0)
+							sellLevel = 1
 						elif buyLevel >= 3:
-							buyLRC(98.0/100.0)
+							buyLRC(99.0/100.0)
+							sellLevel = 2
 							
+						stopLossLower = ratesLow[-1] * 0.98
+						stopLossUpper = 0.0
 						buyLevel += 1
+
+				if stopLossLower > 0.0:
+					if (ratesLow[-1] * 0.98) > stopLossLower:
+						stopLossLower = ratesLow[-1] * 0.98
+					if ratesLow[-1] < stopLossLower:
+						print(Fore.RED + "---StopLoss Sell at {}---".format(now) + Style.RESET_ALL)
+						sellLRC(99.0 / 100.0)
+						stopLossUpper = ratesHigh[-1] * 1.02
+						stopLossLower = 0.0
+						sellLevel = 1
+						buyLevel = 1
+
+				if stopLossUpper > 0.0:
+					if (ratesHigh[-1] * 1.02) < stopLossUpper:
+						stopLossUpper = ratesHigh[-1] * 1.02
+					if ratesHigh[-1] > stopLossUpper:
+						print(Fore.RED + "---StopLoss Buy at {}---".format(now) + Style.RESET_ALL)
+						buyLRC(99.0 / 100.0)
+						stopLossLower = ratesLow[-1] * 0.98
+						stopLossUpper = 0.0
+						sellLevel = 1
+						buyLevel = 1
+
+				
+				print(Fore.YELLOW +
+					"{} - RSI: {} BB: {}".format(now.strftime("%m/%d - %H:%M:%S"),rsiSignal, bbSignal) +
+					Style.RESET_ALL)
+				print("   RSI: {:.3f}, Upper: {}, Lower: {}".format(ratesRsi[-1], rsiUpperBound, rsiLowerBound))
+				print("   bbUpper: {:.3f} - High: {:.3f} | Low: {:.3f} - bbLower: {:.3f}".format(bbUpper[-1], ratesHigh[-1], ratesLow[-1], bbLower[-1]))
+				print("   StopLossUpper: {:.3f} | StopLossLower: {:.3f}".format(stopLossUpper, stopLossLower))
 
 				time.sleep((60 * 4) - 10)
 			else:
@@ -153,20 +187,18 @@ def analyze_rsi_bb(symbol, timeSlice, output_size):
 	global bbLevel
 	global inSellPeriod
 	global inBuyPeriod
-	firstRun = True
 
 	print("Analyze thread started")
 	while(1):
 		now = datetime.now()
 		try:
-			# Runs analyze every 2 hours
-			if ((now.hour % 2) == 0) or firstRun:
+			# Runs analyze every hour
+			if (now.minute == 0):
 				print("Analyzing data")
 				# Variable holders
 				bestDelta = 0.0
 				thisInSellPeriod = False
 				thisInBuyPeriod = False
-				firstRun = False
 
 				rsiSignals = []
 				bbSignals = []
@@ -176,13 +208,13 @@ def analyze_rsi_bb(symbol, timeSlice, output_size):
 				rates = get_historic_rates(symbol, timeSlice, outputSize)
 				ratesHl2Series = pd.Series((rates["High"] + rates["Low"]).div(2).values, index=rates.index)
 				
-				for thisRsiPeriodLength in range(5, 17):
+				for thisRsiPeriodLength in range(3, 12):
 					# Set RSI values
 					ratesRsiSeries = get_rsi(ratesHl2Series, thisRsiPeriodLength)
 
 					for thisRsiUpperBound in range(84, 62, -2):
 						for thisRsiLowerBound in range(16, 38, 2):
-							for thisBbPeriodLength in range(thisRsiPeriodLength, 32, 2):
+							for thisBbPeriodLength in range(thisRsiPeriodLength, 26, 2):
 								# Convert Pandas series to lists
 								ratesHigh = rates["High"].tolist()[(thisBbPeriodLength - 1):]
 								ratesLow = rates["Low"].tolist()[(thisBbPeriodLength - 1):]
@@ -190,14 +222,14 @@ def analyze_rsi_bb(symbol, timeSlice, output_size):
 								ratesRsi = ratesRsiSeries.tolist()[(thisBbPeriodLength - thisRsiPeriodLength):]
 								dates = rates.index.tolist()[(thisBbPeriodLength - 1):]
 						
-								for bbLevelDouble in range(4, 8):
+								for bbLevelDouble in range(7, 14):
 									usdStart = 100.0
 									cryptoStart = 100.0 / ratesHl2[0]
 									usdEnd = usdStart
 									cryptoEnd = cryptoStart
 
 									# Set BB values
-									thisBbLevel = float(bbLevelDouble) / 2.0
+									thisBbLevel = float(bbLevelDouble) / 4.0
 									(bbUpperSeries, bbMiddleSeries, bbLowerSeries) = get_bb(ratesHl2Series, thisBbPeriodLength, thisBbLevel)
 
 									# Convert Pandas series to lists
@@ -245,7 +277,7 @@ def analyze_rsi_bb(symbol, timeSlice, output_size):
 									walletEnd = usdEnd + (cryptoEnd * ratesHl2[-1])
 
 									# Calculates action and no-action gains and losses
-									noActionGainLoss = (ratesHl2[-1] - ratesHl2[0]) / ratesHl2[0]
+									noActionGainLoss = (ratesHl2[-1] - ratesHl2[0]) / (2 * ratesHl2[0])
 									actionGainLoss = (walletEnd - walletStart) / walletStart
 									delta = actionGainLoss - noActionGainLoss
 
@@ -295,11 +327,13 @@ def analyze_rsi_bb(symbol, timeSlice, output_size):
 
 					print("Parameters updated to:")
 					print(topParameters[0])
-					time.sleep(60 * 90)
+
 				else:
 					print(Fore.RED +
-						"No adequite parameters found. Reattempting analyze." +
+						"No adequate parameters found. Reattempting analysis next hour." +
 						Style.RESET_ALL)
+
+				time.sleep(60 *30)
 
 			else:
 				time.sleep(10)
@@ -314,46 +348,72 @@ def analyze_rsi_bb(symbol, timeSlice, output_size):
 # ---------------------------------- Sell/Buy functions -----------------------------------
 
 def sellBTC(portion):
-	trade = client.place_market_order(product_id="BTC-USD",side="sell",size=getAvailableBTC(portion))
+	trade = client.sell(price=str(getAskPrice("BTC-USD")),
+		size=str(getAvailableBTC(portion)),
+		order_type="limit",
+		product_id="BTC-USD",
+		post_only=True)
 	print(trade)
 
 
 def sellLRC(portion):
-	trade = client.place_market_order(product_id="LRC-USD",side="sell",size=getAvailableLRC(portion))
+	trade = client.sell(price=str(getAskPrice("LRC-USD")),
+		size=str(getAvailableLRC(portion)),
+		order_type="limit",
+		product_id="LRC-USD",
+		post_only=True)
 	print(trade)
 
 
 def buyBTC(portion):
-	trade = client.place_market_order(product_id="BTC-USD",side="buy",funds=getAvailableUSD(portion))
+	trade = client.buy(price=str(getBidPrice("BTC-USD")),
+		size=str(round(getAvailableUSD(portion) / getBidPrice("BTC-USD"), 4)),
+		order_type="limit",
+		product_id="BTC-USD",
+		post_only=True)
 	print(trade)
 
 
 def buyLRC(portion):
-	trade = client.place_market_order(product_id="LRC-USD",side="buy",funds=getAvailableUSD(portion))
+	trade = client.buy(price=str(getBidPrice("LRC-USD")),
+		size=str(round(getAvailableUSD(portion) / getBidPrice("LRC-USD"), 6)),
+		order_type="limit",
+		product_id="LRC-USD",
+		post_only=True)
 	print(trade)
 
 
 # ------------------------------- Get-available functions ---------------------------------
 
+def getAskPrice(symbolPair):
+	price = client.get_product_ticker(product_id=symbolPair)["ask"]
+	return (round(float(price) * 1.001, 4))
+
+
+def getBidPrice(symbolPair):
+	price = client.get_product_ticker(product_id=symbolPair)["bid"]
+	return (round(float(price) * 0.999, 4))
+
+
 def getAvailableBTC(portion):
 	accounts = client.get_accounts()
 	for account in accounts:
 		if (account["currency"] == "BTC"):
-			return (str(round(float(account["available"]) * portion, 5)))
+			return (round(float(account["available"]) * portion, 5))
 
 
 def getAvailableLRC(portion):
 	accounts = client.get_accounts()
 	for account in accounts:
 		if (account["currency"] == "LRC"):
-			return (str(round(float(account["available"]) * portion, 6)))
+			return (round(float(account["available"]) * portion, 6))
 
 
 def getAvailableUSD(portion):
 	accounts = client.get_accounts()
 	for account in accounts:
 		if (account["currency"] == "USD"):
-			return (str(round(float(account["available"]) * portion, 2)))
+			return (round(float(account["available"]) * portion, 2))
 
 
 # ----------------------------------- Main functions -------------------------------------
