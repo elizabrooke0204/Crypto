@@ -333,7 +333,7 @@ def analyze_rsi_bb(symbol, timeSlice, output_size):
 						"No adequate parameters found. Reattempting analysis next hour." +
 						Style.RESET_ALL)
 
-				time.sleep(60 *30)
+				time.sleep(60 * 90)
 
 			else:
 				time.sleep(10)
