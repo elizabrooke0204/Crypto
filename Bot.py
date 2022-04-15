@@ -23,11 +23,11 @@ symbol = "LRC"
 timeSlice = "60min"
 outputSize = "compact"
 
-rsiPeriodLength = 4
-rsiUpperBound = 82.0
-rsiLowerBound = 30.0
-bbPeriodLength = 4
-bbLevel = 3.0
+rsiPeriodLength = 10
+rsiUpperBound = 70.0
+rsiLowerBound = 28.0
+bbPeriodLength = 16
+bbLevel = 2.25
 
 inSellPeriod = False
 inBuyPeriod = False
@@ -137,8 +137,8 @@ def run_strategy_rsi_bb(symbol, timeSlice, output_size):
 						buyLevel += 1
 
 				if stopLossLower > 0.0:
-					if (ratesLow[-1] * 0.975) > stopLossLower:
-						stopLossLower = ratesLow[-1] * 0.98
+					if (ratesLow[-2] * 0.975) > stopLossLower:
+						stopLossLower = ratesLow[-2] * 0.98
 					if ratesLow[-1] < stopLossLower:
 						print(Fore.RED + "---StopLoss Sell at {}---".format(now) + Style.RESET_ALL)
 						sellLRC(99.0 / 100.0)
@@ -148,8 +148,8 @@ def run_strategy_rsi_bb(symbol, timeSlice, output_size):
 						buyLevel = 1
 
 				if stopLossUpper > 0.0:
-					if (ratesHigh[-1] * 1.025) < stopLossUpper:
-						stopLossUpper = ratesHigh[-1] * 1.02
+					if (ratesHigh[-2] * 1.025) < stopLossUpper:
+						stopLossUpper = ratesHigh[-2] * 1.02
 					if ratesHigh[-1] > stopLossUpper:
 						print(Fore.RED + "---StopLoss Buy at {}---".format(now) + Style.RESET_ALL)
 						buyLRC(99.0 / 100.0)
@@ -387,12 +387,12 @@ def buyLRC(portion):
 
 def getAskPrice(symbolPair):
 	price = client.get_product_ticker(product_id=symbolPair)["ask"]
-	return (round(float(price) * 1.001, 4))
+	return (round(float(price) * 1.0005, 4))
 
 
 def getBidPrice(symbolPair):
 	price = client.get_product_ticker(product_id=symbolPair)["bid"]
-	return (round(float(price) * 0.999, 4))
+	return (round(float(price) * 0.9995, 4))
 
 
 def getAvailableBTC(portion):
