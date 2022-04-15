@@ -98,8 +98,6 @@ def analyze_rsi_bb(symbol, timeSliceList, outputSize, portion):
 									if (rsiSignals[i] != "sell") and (bbSignals[i] != "sell"):
 										usdEnd = usdEnd + (cryptoEnd * ratesHl2[i] * .995 * portion )
 										cryptoEnd = cryptoEnd * (1.0 - portion)
-										stopLossUpper = ratesHigh[i] * (1.0 + stopLossPortion)
-										stopLossLower = 0.0
 										inSellPeriod = False
 
 								if not inBuyPeriod:
@@ -109,8 +107,6 @@ def analyze_rsi_bb(symbol, timeSliceList, outputSize, portion):
 									if (rsiSignals[i] != "buy") and (bbSignals[i] != "buy"):
 										cryptoEnd = cryptoEnd + (usdEnd * .995 * portion / ratesHl2[i])
 										usdEnd = usdEnd * (1.0 - portion)
-										stopLossLower = ratesLow[i] * (1.0 - stopLossPortion)
-										stopLossUpper = 0.0
 										inBuyPeriod = False
 
 							walletStart = 200.0
@@ -324,7 +320,7 @@ def multiprocess_test_all():
 
 if __name__ == "__main__":
 	#analyze_rsi_bb("LRC", ["60min"], "compact", 0.99)
-	test_rsi_bb_parameters("LRC", "60min", "compact", 8, 80, 16, 20, 2.0)
+	test_rsi_bb_parameters("LRC", "60min", "compact", 10, 70, 28, 16, 2.25)
 	#multiprocess_rsi_bb("LRC", "full")
 
 	#multiprocess_test_all()
