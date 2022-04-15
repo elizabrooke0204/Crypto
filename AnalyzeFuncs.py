@@ -11,7 +11,13 @@ from datetime import datetime, timedelta
 
 #File imports
 from HelperFuncs import *
+from SymbolList import symList
+from auth_cred import (api_secret, api_key, api_pass)
 
+# Set url and authticate client
+url = "https://api.pro.coinbase.com"
+#url = "https://api-public.sandbox.pro.coinbase.com"
+client = cbpro.AuthenticatedClient(api_key, api_secret, api_pass, api_url=url)
 
 # ------------------------------------ Analyze RSI BB -------------------------------------
 
@@ -35,9 +41,9 @@ def analyze_rsi_bb(symbol, timeSliceList, outputSize, portion):
 		timeSlicePerDay = float(timeSlice[:len(timeSlice) - 3])
 		timeSlicePerDay = timeSlicePerDay * 200 / (60 * 24)
 		
-		for rsiPeriodLength in range(5, 18):
+		for rsiPeriodLength in range(2, 14):
 			# Set RSI values
-			print("timeSlice: {}, RSI: {}".format(timeSlice, rsiPeriodLength))
+			#print("timeSlice: {}, RSI: {}".format(timeSlice, rsiPeriodLength))
 			ratesRsiSeries = get_rsi(ratesHl2Series, rsiPeriodLength)
 
 			for rsiUpperBound in range(90, 66, -2):
@@ -51,7 +57,7 @@ def analyze_rsi_bb(symbol, timeSliceList, outputSize, portion):
 						dates = rates.index.tolist()[(bbPeriodLength - 1):]
 
 				
-						for bbLevelDouble in range(3, 9):
+						for bbLevelDouble in range(4, 14):
 							# Start with 100USD and 100USD worth of crypto
 							usdStart = 100.0
 							cryptoStart = 100.0 / ratesHl2[0]
@@ -59,7 +65,7 @@ def analyze_rsi_bb(symbol, timeSliceList, outputSize, portion):
 							cryptoEnd = cryptoStart
 
 							# Set BB values
-							bbLevel = float(bbLevelDouble) / 2.0
+							bbLevel = float(bbLevelDouble) / 4.0
 							(bbUpperSeries, bbMiddleSeries, bbLowerSeries) = get_bb(ratesHl2Series, bbPeriodLength, bbLevel)
 
 							# Convert Pandas series to lists
@@ -92,6 +98,8 @@ def analyze_rsi_bb(symbol, timeSliceList, outputSize, portion):
 									if (rsiSignals[i] != "sell") and (bbSignals[i] != "sell"):
 										usdEnd = usdEnd + (cryptoEnd * ratesHl2[i] * .995 * portion )
 										cryptoEnd = cryptoEnd * (1.0 - portion)
+										stopLossUpper = ratesHigh[i] * (1.0 + stopLossPortion)
+										stopLossLower = 0.0
 										inSellPeriod = False
 
 								if not inBuyPeriod:
@@ -101,20 +109,22 @@ def analyze_rsi_bb(symbol, timeSliceList, outputSize, portion):
 									if (rsiSignals[i] != "buy") and (bbSignals[i] != "buy"):
 										cryptoEnd = cryptoEnd + (usdEnd * .995 * portion / ratesHl2[i])
 										usdEnd = usdEnd * (1.0 - portion)
+										stopLossLower = ratesLow[i] * (1.0 - stopLossPortion)
+										stopLossUpper = 0.0
 										inBuyPeriod = False
 
 							walletStart = 200.0
 							walletEnd = usdEnd + (cryptoEnd * ratesHl2[-1])
 
 							# Calculates action and no-action gains and losses
-							noActionGainLoss = (ratesHl2[-1] - ratesHl2[0]) / ratesHl2[0]
+							noActionGainLoss = (ratesHl2[-1] - ratesHl2[0]) / (2 * ratesHl2[0])
 							actionGainLoss = (walletEnd - walletStart) / walletStart
 							delta = actionGainLoss - noActionGainLoss
 
 							if (delta >= bestDelta):
 								bestDelta = delta
 								deltaPerDay = delta / timeSlicePerDay
-								currentTopParameters.append([deltaPerDay, delta, timeSlice, rsiPeriodLength, rsiUpperBound, rsiLowerBound, bbPeriodLength, bbLevel])
+								currentTopParameters.append([actionGainLoss, delta, timeSlice, rsiPeriodLength, rsiUpperBound, rsiLowerBound, bbPeriodLength, bbLevel])
 
 							rsiSignals = []
 							bbSignals = []
@@ -132,11 +142,54 @@ def analyze_rsi_bb(symbol, timeSliceList, outputSize, portion):
 				topParameters.append(currentTopParameters[i])
 			currentTopParameters = []
 
-	topParameters.sort(reverse=True)
-	print("deltaPerDay, delta, timeSlice, rsiP, rsiU, rsiL, bbP, bbLvl")
-	for parameters in topParameters[-15:]:
+	topParameters.sort()
+	print(symbol)
+	print("actionGainLoss, delta, timeSlice, rsiP, rsiU, rsiL, bbP, bbLvl")
+	for parameters in topParameters:
 		print(parameters)
 
+
+def get_price_differences(symbol):
+	rates5min = get_historic_rates(symbol, "5min", "full")
+	rates60min = get_historic_rates(symbol, "60min", "full")
+
+	series5minHl2 = pd.Series((rates5min["High"] + rates5min["Low"]).div(2).values, index=rates5min.index)
+	series60minHl2 = pd.Series((rates60min["High"] + rates60min["Low"]).div(2).values, index=rates60min.index)
+
+	list5min = series5minHl2.tolist()
+	list60min = series60minHl2.tolist()
+
+	now = list5min[-1]
+
+	return ([symbol, get_delta(now, list5min[-2]), get_delta(now, list5min[-7]),
+		get_delta(now, list5min[-13]), get_delta(now, list5min[-73]),
+		get_delta(now, list5min[-145]), get_delta(now, list5min[-289]),
+		get_delta(now, list60min[-120]), get_delta(now, list60min[-240]),
+		get_delta(now, list60min[-480]), get_delta(now, list60min[-720])])
+
+
+def get_all_price_differences():
+	data = pd.DataFrame(client.get_products())
+	dataList = data["id"].tolist()
+
+	deltaList = []
+
+	for sym in symList:
+		try:
+			#deltaList.append
+			print(get_price_differences(sym))
+			time.sleep(30)
+
+		except Exception as err:
+			print("not in list")
+			time.sleep(30)
+
+	for delta in deltaList:
+		print(delta)
+
+	
+def get_delta(priceNow, priceOld):
+	return round((priceNow - priceOld) * 100.0 / priceOld, 2)
 
 # ------------------------------------- Test RSI BB ---------------------------------------
 
@@ -171,6 +224,10 @@ def test_rsi_bb_parameters(symbol, timeSlice, outputSize, rsiPeriodLength, rsiUp
 	cryptoStart = 100.0 / ratesHl2[0]
 	cryptoEnd = cryptoStart
 
+	stopLossLower = 0.0
+	stopLossUpper = 0.0
+	stopLossPortion = 0.01
+
 	# Parse through data and determine sell, buy and hold signals for rsi and bb
 	for i in range(len(dates)):
 		if ratesRsi[i] > rsiUpperBound:
@@ -196,8 +253,8 @@ def test_rsi_bb_parameters(symbol, timeSlice, outputSize, rsiPeriodLength, rsiUp
 				inSellPeriod = True
 		else:
 			if (rsiSignals[i] != "sell") and (bbSignals[i] != "sell"):
-				usdEnd = usdEnd + (cryptoEnd * ratesHl2[i] * .995 * .75)
-				cryptoEnd = cryptoEnd * .25
+				usdEnd = usdEnd + (cryptoEnd * ratesHl2[i] * .995 * .99)
+				cryptoEnd = cryptoEnd * .01
 				print("SELL on {} at: {:.6f}".format(dates[i], ratesHl2[i]))
 				print("   USD= {:.3f} | {}= {:.3f}".format(usdEnd, symbol, cryptoEnd))
 				inSellPeriod = False
@@ -207,32 +264,33 @@ def test_rsi_bb_parameters(symbol, timeSlice, outputSize, rsiPeriodLength, rsiUp
 				inBuyPeriod = True
 		else:
 			if (rsiSignals[i] != "buy") and (bbSignals[i] != "buy"):
-				cryptoEnd = cryptoEnd + (usdEnd * .995 * .75 / ratesHl2[i])
-				usdEnd = usdEnd * .25
+				cryptoEnd = cryptoEnd + (usdEnd * .995 * .99 / ratesHl2[i])
+				usdEnd = usdEnd * .01
 				print("BUY on {} at: {:.6f}".format(dates[i], ratesHl2[i]))
 				print("   USD= {:.3f} | {}= {:.3f}".format(usdEnd, symbol, cryptoEnd))
 				inBuyPeriod = False
+
 
 	# Calculates endWallet
 	walletStart = 200.0
 	walletEnd = usdEnd + (cryptoEnd * ratesHl2[-1])
 
-	noActionGainLoss = (ratesHl2[-1] - ratesHl2[0]) / ratesHl2[0]
+	noActionGainLoss = (ratesHl2[-1] - ratesHl2[0]) / (2 * ratesHl2[0])
 	actionGainLoss = (walletEnd - walletStart) / walletStart
 
 	print("walletStart: {}, walletEnd: {}".format(walletStart, walletEnd))
 	print("timeSlice, rsiPeriod, rsiUpper, rsiLower, bbPeriod, bbLevel")
 	print("{},    {},    {},    {},    {},    {}".format(timeSlice, rsiPeriodLength, rsiUpperBound, rsiLowerBound, bbPeriodLength, bbLevel))
-	print("actionGainLoss: {}, noActionGainLoss: {}".format(actionGainLoss, noActionGainLoss / 2.0))
+	print("actionGainLoss: {}, noActionGainLoss: {}".format(actionGainLoss, noActionGainLoss))
 
 
 # ----------------------------- Multiprocess-Analyze RSI BB -------------------------------
 
 def multiprocess_rsi_bb(symbol, outputSize):
-	t1 = multiprocessing.Process(target=analyze_rsi_bb, args=(symbol, ["5min"], outputSize))
-	t2 = multiprocessing.Process(target=analyze_rsi_bb, args=(symbol, ["15min"], outputSize))
-	t3 = multiprocessing.Process(target=analyze_rsi_bb, args=(symbol, ["30min"], outputSize))
-	t4 = multiprocessing.Process(target=analyze_rsi_bb, args=(symbol, ["60min"], outputSize))
+	t1 = multiprocessing.Process(target=analyze_rsi_bb, args=(symbol, ["5min"], outputSize, 0.95))
+	t2 = multiprocessing.Process(target=analyze_rsi_bb, args=(symbol, ["15min"], outputSize, 0.95))
+	t3 = multiprocessing.Process(target=analyze_rsi_bb, args=(symbol, ["30min"], outputSize, 0.95))
+	t4 = multiprocessing.Process(target=analyze_rsi_bb, args=(symbol, ["60min"], outputSize, 0.95))
 
 	t1.start()
 	t2.start()
@@ -244,9 +302,34 @@ def multiprocess_rsi_bb(symbol, outputSize):
 	t3.join()
 	t4.join()
 
-if __name__ == "__main__":
-	#analyze_rsi_bb("LRC", ["15min"], "compact", 0.75)
-	test_rsi_bb_parameters("LRC", "15min", "compact", 5, 70, 18, 5, 2.5)
-	#multiprocess_rsi_bb("LRC", "compact")
 
+def test_all():
+	for sym in symList:
+		print(sym)
+		analyze_rsi_bb(sym, ["15min"], "compact", 0.99)
+
+def multiprocess_test_all():
+
+	for i in range(0, 56, 2):
+		outputSize = "compact"
+		t1 = multiprocessing.Process(target=analyze_rsi_bb, args=(symList[i], ["15min"], outputSize, 0.99))
+		t2 = multiprocessing.Process(target=analyze_rsi_bb, args=(symList[i + 1], ["15min"], outputSize, 0.99))
+		
+		t1.start()
+		t2.start()
+
+		t1.join()
+		t2.join()
+
+
+if __name__ == "__main__":
+	#analyze_rsi_bb("LRC", ["60min"], "compact", 0.99)
+	test_rsi_bb_parameters("LRC", "60min", "compact", 8, 80, 16, 20, 2.0)
+	#multiprocess_rsi_bb("LRC", "full")
+
+	#multiprocess_test_all()
+	#print(get_price_differences("LINK"))
+	#get_all_price_differences()
+
+	#websocket()
 

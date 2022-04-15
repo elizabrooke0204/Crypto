@@ -20,7 +20,6 @@ def get_ema(rates, periodLength):
 # ------------------------- Momentum indicators (oscillators) --------------------------
 
 #recieves rates as pandas Series and performs rsi calculations
-
 def get_macd(rates, periodShort, periodLong, periodEma):
 	emaShort = get_ema(rates, periodShort)
 	emaLong = get_ema(rates, periodLong)
