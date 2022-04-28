@@ -37,7 +37,7 @@ bbSignal = "hold"
 
 # ----------------------------------- Strategy thread -------------------------------------
 
-def run_strategy_rsi_bb(symbol, timeSlice, output_size):
+def run_strategy_rsi_bb():
 	global rsiPeriodLength
 	global rsiUpperBound
 	global rsiLowerBound
@@ -179,7 +179,7 @@ def run_strategy_rsi_bb(symbol, timeSlice, output_size):
 
 # ------------------------------------ Analyze thread -------------------------------------
 
-def analyze_rsi_bb(symbol, timeSlice, output_size):
+def analyze_rsi_bb():
 	global rsiPeriodLength
 	global rsiUpperBound
 	global rsiLowerBound
@@ -193,7 +193,7 @@ def analyze_rsi_bb(symbol, timeSlice, output_size):
 		now = datetime.now()
 		try:
 			# Runs analyze every hour
-			if (now.minute == 0):
+			if (now.minute > 0):
 				print("Analyzing data")
 				# Variable holders
 				bestDelta = 0.0
@@ -209,6 +209,7 @@ def analyze_rsi_bb(symbol, timeSlice, output_size):
 				ratesHl2Series = pd.Series((rates["High"] + rates["Low"]).div(2).values, index=rates.index)
 				
 				for thisRsiPeriodLength in range(3, 12):
+					print(thisRsiPeriodLength)
 					# Set RSI values
 					ratesRsiSeries = get_rsi(ratesHl2Series, thisRsiPeriodLength)
 
@@ -345,82 +346,11 @@ def analyze_rsi_bb(symbol, timeSlice, output_size):
 			time.sleep(10)
 
 
-# ---------------------------------- Sell/Buy functions -----------------------------------
-
-def sellBTC(portion):
-	trade = client.sell(price=str(getAskPrice("BTC-USD")),
-		size=str(getAvailableBTC(portion)),
-		order_type="limit",
-		product_id="BTC-USD",
-		post_only=True)
-	print(trade)
-
-
-def sellLRC(portion):
-	trade = client.sell(price=str(getAskPrice("LRC-USD")),
-		size=str(getAvailableLRC(portion)),
-		order_type="limit",
-		product_id="LRC-USD",
-		post_only=True)
-	print(trade)
-
-
-def buyBTC(portion):
-	trade = client.buy(price=str(getBidPrice("BTC-USD")),
-		size=str(round(getAvailableUSD(portion) / getBidPrice("BTC-USD"), 4)),
-		order_type="limit",
-		product_id="BTC-USD",
-		post_only=True)
-	print(trade)
-
-
-def buyLRC(portion):
-	trade = client.buy(price=str(getBidPrice("LRC-USD")),
-		size=str(round(getAvailableUSD(portion) / getBidPrice("LRC-USD"), 6)),
-		order_type="limit",
-		product_id="LRC-USD",
-		post_only=True)
-	print(trade)
-
-
-# ------------------------------- Get-available functions ---------------------------------
-
-def getAskPrice(symbolPair):
-	price = client.get_product_ticker(product_id=symbolPair)["ask"]
-	return (round(float(price) * 1.0005, 4))
-
-
-def getBidPrice(symbolPair):
-	price = client.get_product_ticker(product_id=symbolPair)["bid"]
-	return (round(float(price) * 0.9995, 4))
-
-
-def getAvailableBTC(portion):
-	accounts = client.get_accounts()
-	for account in accounts:
-		if (account["currency"] == "BTC"):
-			return (round(float(account["available"]) * portion, 5))
-
-
-def getAvailableLRC(portion):
-	accounts = client.get_accounts()
-	for account in accounts:
-		if (account["currency"] == "LRC"):
-			return (round(float(account["available"]) * portion, 6))
-
-
-def getAvailableUSD(portion):
-	accounts = client.get_accounts()
-	for account in accounts:
-		if (account["currency"] == "USD"):
-			return (round(float(account["available"]) * portion, 2))
-
-
 # ----------------------------------- Main functions -------------------------------------
 
 def thread_analyze_and_strategy():
-	strategyThread = threading.Thread(target=run_strategy_rsi_bb, args=(symbol, timeSlice, outputSize))
-	analyzeThread = threading.Thread(target=analyze_rsi_bb, args=(symbol, timeSlice, outputSize))
+	strategyThread = threading.Thread(target=run_strategy_rsi_bb, args=(symbol, timeSlice, outputSize),daemon=True)
+	analyzeThread = threading.Thread(target=analyze_rsi_bb, args=(symbol, timeSlice, outputSize), daemon=True)
 
 	strategyThread.start()
 	analyzeThread.start()
