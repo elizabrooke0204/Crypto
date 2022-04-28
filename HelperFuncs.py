@@ -3,10 +3,17 @@
 #Library imports
 import time
 import requests
+import cbpro
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
 from datetime import datetime, timedelta
-from auth_cred import (alpha_api_key)
+from auth_cred import (api_secret, api_key, api_pass, alpha_api_key)
+
+# Set url and authticate client
+url = "https://api.pro.coinbase.com"
+#url = "https://api-public.sandbox.pro.coinbase.com"
+client = cbpro.AuthenticatedClient(api_key, api_secret, api_pass, api_url=url)
 
 
 # --------------------------------- Trend indicators -----------------------------------
@@ -196,12 +203,13 @@ def get_historic_rates(symbol, timeSlice, output_size):
 # --------------------------------- Plot indicators ------------------------------------
 
 def plot_bb(rates, bbUpper, bbMiddle, bbLower):
-	plt.plot(bbUpper, label="Bollinger Up", c="g")
+	plt.plot(bbUpper, label="Bollinger Up", c="b")
 	plt.plot(bbMiddle, label="Bollinger Middle", c="black")
-	plt.plot(bbLower, label="Bollinger Down", c="r")
-	plt.plot(rates, label="Rates", c="b")
+	plt.plot(bbLower, label="Bollinger Down", c="b")
+	plt.plot(rates, label="Rates", c="g")
 	plt.legend()
-	plt.show()
+	plt.xticks(np.arange(0, len(rates) + 1, 20), rotation=10)
+	return plt
 
 
 def plot_inchimoku(conversionLine, baseLine, leadingSpanA, leadingSpanB, chikou_span):
@@ -212,21 +220,92 @@ def plot_inchimoku(conversionLine, baseLine, leadingSpanA, leadingSpanB, chikou_
 	plt.plot(chikou_span, label="chikou-span", c="g")
 	plt.fill_between(leadingSpanA.index, leadingSpanA, leadingSpanB, facecolor="grey")
 	plt.legend()
-	plt.show()
+	return plt
 
 
 def plot_macd(macd, emaMacd):
 	plt.plot(macd, label="macd", c="black")
 	plt.plot(emaMacd, label="signal", c="r")
 	plt.legend()
-	plt.show()
+	return plt
 
 
 def plot_vwap(rates, vwap):
 	plt.plot(vwap, label="VWAP", c="g")
 	plt.plot(rates, label="Rates", c="b")
 	plt.legend()
-	plt.show()
+	return plt
+
+
+# ---------------------------------- Sell/Buy functions -----------------------------------
+
+def sellBTC(portion):
+	trade = client.sell(price=str(getAskPrice("BTC-USD")),
+		size=str(getAvailableBTC(portion)),
+		order_type="limit",
+		product_id="BTC-USD",
+		post_only=True)
+	print(trade)
+
+
+def sellLRC(portion):
+	trade = client.sell(price=str(getAskPrice("LRC-USD")),
+		size=str(getAvailableLRC(portion)),
+		order_type="limit",
+		product_id="LRC-USD",
+		post_only=True)
+	print(trade)
+
+
+def buyBTC(portion):
+	trade = client.buy(price=str(getBidPrice("BTC-USD")),
+		size=str(round(getAvailableUSD(portion) / getBidPrice("BTC-USD"), 4)),
+		order_type="limit",
+		product_id="BTC-USD",
+		post_only=True)
+	print(trade)
+
+
+def buyLRC(portion):
+	trade = client.buy(price=str(getBidPrice("LRC-USD")),
+		size=str(round(getAvailableUSD(portion) / getBidPrice("LRC-USD"), 6)),
+		order_type="limit",
+		product_id="LRC-USD",
+		post_only=True)
+	print(trade)
+
+
+# ------------------------------- Get-available functions ---------------------------------
+
+def getAskPrice(symbolPair):
+	price = client.get_product_ticker(product_id=symbolPair)["ask"]
+	return (round(float(price) * 1.0005, 4))
+
+
+def getBidPrice(symbolPair):
+	price = client.get_product_ticker(product_id=symbolPair)["bid"]
+	return (round(float(price) * 0.9995, 4))
+
+
+def getAvailableBTC(portion):
+	accounts = client.get_accounts()
+	for account in accounts:
+		if (account["currency"] == "BTC"):
+			return (round(float(account["available"]) * portion, 5))
+
+
+def getAvailableLRC(portion):
+	accounts = client.get_accounts()
+	for account in accounts:
+		if (account["currency"] == "LRC"):
+			return (round(float(account["available"]) * portion, 6))
+
+
+def getAvailableUSD(portion):
+	accounts = client.get_accounts()
+	for account in accounts:
+		if (account["currency"] == "USD"):
+			return (round(float(account["available"]) * portion, 2))
 
 
 
