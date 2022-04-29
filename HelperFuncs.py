@@ -187,6 +187,7 @@ def get_historic_rates(symbol, timeSlice, output_size):
 
 	# Set index and row names, sort data from latest to most recent rates
 	rates.index.name="Date"
+	rates.index = rates.index.str[5:-3]
 	rates.columns = ["Open","High","Low","Close","Volume"]
 	rates.sort_values(by="Date", ascending=True, inplace=True)
 
@@ -234,6 +235,13 @@ def plot_vwap(rates, vwap):
 	plt.plot(vwap, label="VWAP", c="g")
 	plt.plot(rates, label="Rates", c="b")
 	plt.legend()
+	return plt
+
+
+def plot_rsi(rsi, rsiUpperBound, rsiLowerBound):
+	plt.plot(rsi, label="RSI", c="r")
+	plt.axhline(y=rsiUpperBound, color='r', linestyle='--')
+	plt.axhline(y=rsiLowerBound, color='r', linestyle='--')
 	return plt
 
 
