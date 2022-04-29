@@ -108,7 +108,7 @@ def run_strategy_rsi_bb():
 							sellLRC(99.0/100.0)
 							buyLevel = 2 
 
-						stopLossUpper = ratesHigh[-1] * 1.02
+						stopLossUpper = bbMiddle[-1] * 1.02
 						stopLossLower = 0.0
 						sellLevel += 1
 
@@ -132,28 +132,28 @@ def run_strategy_rsi_bb():
 							buyLRC(99.0/100.0)
 							sellLevel = 2
 							
-						stopLossLower = ratesLow[-1] * 0.98
+						stopLossLower = bbMiddle[-1] * 0.98
 						stopLossUpper = 0.0
 						buyLevel += 1
 
 				if stopLossLower > 0.0:
-					if (ratesLow[-2] * 0.975) > stopLossLower:
-						stopLossLower = ratesLow[-2] * 0.98
-					if ratesLow[-1] < stopLossLower:
+					if (bbMiddle[-2] * 0.98) > stopLossLower:
+						stopLossLower = bbMiddle[-2] * 0.98
+					if bbMiddle[-1] < stopLossLower:
 						print(Fore.RED + "---StopLoss Sell at {}---".format(now) + Style.RESET_ALL)
 						sellLRC(99.0 / 100.0)
-						stopLossUpper = ratesHigh[-1] * 1.02
+						stopLossUpper = bbMiddle[-1] * 1.02
 						stopLossLower = 0.0
 						sellLevel = 1
 						buyLevel = 1
 
 				if stopLossUpper > 0.0:
-					if (ratesHigh[-2] * 1.025) < stopLossUpper:
-						stopLossUpper = ratesHigh[-2] * 1.02
-					if ratesHigh[-1] > stopLossUpper:
+					if (bbMiddle[-2] * 1.02) < stopLossUpper:
+						stopLossUpper = bbMiddle[-2] * 1.02
+					if bbMiddle[-1] > stopLossUpper:
 						print(Fore.RED + "---StopLoss Buy at {}---".format(now) + Style.RESET_ALL)
 						buyLRC(99.0 / 100.0)
-						stopLossLower = ratesLow[-1] * 0.98
+						stopLossLower = bbMiddle[-1] * 0.98
 						stopLossUpper = 0.0
 						sellLevel = 1
 						buyLevel = 1
