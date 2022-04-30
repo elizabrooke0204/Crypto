@@ -1,0 +1,127 @@
+<Bot>
+	BoxLayout:
+		orientation: "vertical"
+
+		Label:
+			text: "TITLE"
+			size_hint_y: .1
+
+		# Main box layout
+		BoxLayout:
+			# Graph box
+			BoxLayout:
+				id: graphBox
+				size_hint_x: .65
+				#pos_hint: {"top":1, "left":1}
+				
+			# Current information
+			BoxLayout:
+				orientation: "vertical"
+				size_hint_x: .35
+
+				# Open, high, low, close
+				BoxLayout:
+					orientation: "horizontal"
+					BoxLayout:
+						BoxLayout:
+							orientation: "vertical"
+							Label:
+								text: "Open"
+							Label:
+								id: open_var
+								text: "0.0"
+						BoxLayout:
+							orientation: "vertical"
+							Label:
+								text: "High"
+							Label:
+								id: high_var
+								text: "0.0"
+						BoxLayout:
+							orientation: "vertical"
+							Label:
+								text: "Low"
+							Label:
+								id: low_var
+								text: "0.0"
+						BoxLayout:
+							orientation: "vertical"
+							Label:
+								text: "Close"
+							Label:
+								id: close_var
+								text: "0.0"
+
+				# BB
+				BoxLayout:
+					orientation: "horizontal"
+					BoxLayout:
+						BoxLayout:
+							orientation: "vertical"
+							Label:
+								text: "BB Upper"
+							Label:
+								id: bb_upper_var
+								text: "0.0"
+						BoxLayout:
+							orientation: "vertical"
+							Label:
+								text: "BB Lower"
+							Label:
+								id: bb_lower_var
+								text: "0.0"
+				# RSI
+				BoxLayout:
+					orientation: "horizontal"
+					BoxLayout:
+						BoxLayout:
+							orientation: "vertical"
+							Label:
+								text: "RSI Upper"
+							Label:
+								id: rsi_upper_var
+								text: "0.0"
+						BoxLayout:
+							orientation: "vertical"
+							Label:
+								text: "RSI Value"
+							Label:
+								id: rsi_var
+								text: "0.0"
+						BoxLayout:
+							orientation: "vertical"
+							Label:
+								text: "RSI Lower"
+							Label:
+								id: rsi_lower_var
+								text: "0.0"
+
+				# Stop Loss
+				BoxLayout:
+					orientation: "horizontal"
+					BoxLayout:
+						BoxLayout:
+							orientation: "vertical"
+							Label:
+								text: "Stop Loss Upper"
+							Label:
+								id: stoploss_upper_var
+								text: "0.0"
+						BoxLayout:
+							orientation: "vertical"
+							Label:
+								text: "Stop Loss Lower"
+							Label:
+								id: stoploss_lower_var
+								text: "0.0"
+
+
+				Label:
+					text: "UPDATE SETTINGS"
+
+
+		Label:
+			id: kv_sec
+			size_hint_y: .2
+			text: root.seconds_string
+			font_size: 100
