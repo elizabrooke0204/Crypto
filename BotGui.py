@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 
+
+
 # Kivy library imports
 from kivy.lang import Builder
 from kivymd.app import MDApp
+from kivy.core.window import Window
 from kivy.clock import Clock
 from kivy.properties import StringProperty
 from kivy.properties import ObjectProperty
@@ -20,7 +23,6 @@ import pandas as pd
 from datetime import datetime, timedelta
 from colorama import Fore, Back, Style
 import matplotlib.pyplot as plt
-fig, (ax1, ax2) = plt.subplots(2)
 
 # File imports
 from HelperFuncs import *
@@ -30,6 +32,9 @@ from auth_cred import (api_secret, api_key, api_pass)
 url = "https://api.pro.coinbase.com"
 #url = "https://api-public.sandbox.pro.coinbase.com"
 client = cbpro.AuthenticatedClient(api_key, api_secret, api_pass, api_url=url)
+
+fig, (ax1, ax2) = plt.subplots(2)
+Window.size = (1000, 700)
 
 # global variables initial parameters
 symbol = "LRC"
@@ -393,15 +398,20 @@ class MainApp(MDApp):
 		self.root.seconds_string = time.strftime("%S")
 		# STATEGY THREAD
 		if time.strftime("%S") == "00":
-			rates = get_historic_rates(symbol, timeSlice, outputSize)
+			if float(time.strftime("%-M")) % 5 == 0:
+				try:
+					rates = get_historic_rates(symbol, timeSlice, outputSize)
 
-			# ANALYZE THREAD
-			if time.strftime("%M") == "00":
-				analyzeThread = threading.Thread(target=self.root.analyze_rsi_bb, daemon=True)
-				analyzeThread.start()
+					# ANALYZE THREAD
+					if time.strftime("%M") == "00":
+						analyzeThread = threading.Thread(target=self.root.analyze_rsi_bb, daemon=True)
+						analyzeThread.start()
 
-			self.root.run_strategy_rsi_bb(rates)
-			self.root.update_variables(rates)
+					self.root.run_strategy_rsi_bb(rates)
+					self.root.update_variables(rates)
+				except Exception as err:
+					print(Fore.RED + "UPDATE-SCREEN-ERROR." + Style.RESET_ALL)
+					print(err)
 
 
 
