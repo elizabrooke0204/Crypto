@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-
-
 # Kivy library imports
 from kivy.lang import Builder
 from kivymd.app import MDApp
@@ -149,7 +147,7 @@ class Bot(BoxLayout):
 			if self.stopLossLower > 0.0:
 				if (bbMiddle[-2] * 0.97) > self.stopLossLower:
 					self.stopLossLower = bbMiddle[-2] * 0.97
-				if bbMiddle[-1] < self.stopLossLower:
+				if ratesLow[-1] < self.stopLossLower:
 					print(Fore.RED + "---StopLoss Sell at {}---".format(now) + Style.RESET_ALL)
 					sellLRC(99.0 / 100.0)
 					self.stopLossUpper = bbMiddle[-1] * 1.03
@@ -160,7 +158,7 @@ class Bot(BoxLayout):
 			if self.stopLossUpper > 0.0:
 				if (bbMiddle[-2] * 1.03) < self.stopLossUpper:
 					self.stopLossUpper = bbMiddle[-2] * 1.03
-				if bbMiddle[-1] > self.stopLossUpper:
+				if ratesHigh[-1] > self.stopLossUpper:
 					print(Fore.RED + "---StopLoss Buy at {}---".format(now) + Style.RESET_ALL)
 					buyLRC(99.0 / 100.0)
 					self.stopLossLower = bbMiddle[-1] * 0.97
@@ -175,7 +173,6 @@ class Bot(BoxLayout):
 			print("   RSI: {:.3f}, Upper: {}, Lower: {}".format(ratesRsi[-1], self.rsiUpperBound, self.rsiLowerBound))
 			print("   bbUpper: {:.3f} - High: {:.3f} | Low: {:.3f} - bbLower: {:.3f}".format(bbUpper[-1], ratesHigh[-1], ratesLow[-1], bbLower[-1]))
 			print("   self.stopLossUpper: {:.3f} | self.stopLossLower: {:.3f}".format(self.stopLossUpper, self.stopLossLower))
-
 
 		# Catches error in Strategy thread and prints to screen
 		except Exception as err:
@@ -352,37 +349,48 @@ class Bot(BoxLayout):
 		self.ids.stoploss_upper_var.text = (str(self.stopLossUpper))[:5]
 		self.ids.stoploss_lower_var.text = (str(self.stopLossLower))[:5]
 
-
 		# Clear plot and widget, set new plot and widget
 		plt.cla()
 		ax1.cla()
+		ax2.cla()
 		self.graphBox.clear_widgets()
 		Bot.add_plot(self, ratesHl2)
-		plt.cla()
 		Bot.add_rsi_plot(self, ratesHl2)
 		self.graphBox.add_widget(FigureCanvasKivyAgg(plt.gcf()))
 
+
 	# Adds new data to plt
 	def add_plot(self, ratesHl2):
+		size = 250
 		(bbUpper, bbMiddle, bbLower) = get_bb(ratesHl2, self.bbPeriodLength, self.bbLevel)
-		ax1.plot(bbUpper.tail(350), label="Bollinger Up", c="b")
-		ax1.plot(bbMiddle.tail(350), label="Bollinger Middle", c="black")
-		ax1.plot(bbLower.tail(350), label="Bollinger Down", c="b")
-		ax1.plot(ratesHl2.tail(350), label="Rates", c="g")
-		ax1.set_xticks([0, 69, 139, 209, 279, 349])
+		ax1.plot(bbUpper.tail(size), label="Bollinger Up", c="b")
+		ax1.plot(bbMiddle.tail(size), label="Bollinger Middle", c="black")
+		ax1.plot(bbLower.tail(size), label="Bollinger Down", c="b")
+		ax1.plot(ratesHl2.tail(size), label="Rates", c="g")
+		ax1.set_xticks([0,
+			int(size / 5) - 1,
+			int(size * 2 / 5) - 1,
+			int(size * 3 / 5) - 1,
+			int(size * 4 / 5) - 1,
+			size - 1])
 		ax1.tick_params(labelsize=7, labelrotation=0)
 		ax1.grid()
 
 	def add_rsi_plot(self, ratesHl2):
+		size = 250
 		rsi = get_rsi(ratesHl2, self.rsiPeriodLength)
 		#plt = plot_rsi(rsi, self.rsiUpperBound, self.rsiLowerBound)
-		ax2.plot(rsi.tail(350), label="RSI", c="r")
+		ax2.plot(rsi.tail(size), label="RSI", c="r")
 		ax2.axhline(y=self.rsiUpperBound, color='r', linestyle='--')
 		ax2.axhline(y=self.rsiLowerBound, color='r', linestyle='--')
-		ax2.set_xticks([0, 69, 139, 209, 279, 349])
+		ax2.set_xticks([0,
+			int(size / 5) - 1,
+			int(size * 2 / 5) - 1,
+			int(size * 3 / 5) - 1,
+			int(size * 4 / 5) - 1,
+			size - 1])
 		ax2.tick_params(labelsize=7, labelrotation=0)
 		ax2.grid()
-
 
 
 class MainApp(MDApp):
@@ -407,8 +415,8 @@ class MainApp(MDApp):
 						analyzeThread = threading.Thread(target=self.root.analyze_rsi_bb, daemon=True)
 						analyzeThread.start()
 
-					self.root.run_strategy_rsi_bb(rates)
-					self.root.update_variables(rates)
+					self.root.run_strategy_rsi_bb(rates.tail(500))
+					self.root.update_variables(rates.tail(500))
 				except Exception as err:
 					print(Fore.RED + "UPDATE-SCREEN-ERROR." + Style.RESET_ALL)
 					print(err)
