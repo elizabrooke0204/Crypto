@@ -185,7 +185,7 @@ class Bot(BoxLayout):
 			# Variable holders
 			bestDelta = 0.0
 			portion = 0.95
-			
+
 			stopLossLower = 0.0
 			stopLossUpper = 0.0
 			stopLossPortion = 0.0235
@@ -336,10 +336,6 @@ class Bot(BoxLayout):
 				self.rsiLowerBound = topParameters[0][3]
 				self.bbPeriodLength = topParameters[0][4]
 				self.bbLevel = topParameters[0][5]
-				if not self.inSellPeriod:
-					self.inSellPeriod = topParameters[0][6]
-				if not self.inBuyPeriod:
-					self.inBuyPeriod = topParameters[0][7]
 
 				print("Parameters updated to:")
 				print(topParameters[0])
