@@ -52,10 +52,12 @@ class Bot(BoxLayout):
 	inBuyPeriod = BooleanProperty(False)
 	rsiSignal = StringProperty("hold")
 	bbSignal = StringProperty("hold")
+
 	sellLevel = 1
 	buyLevel = 1
 	stopLossUpper = 0.0
 	stopLossLower = 0.0
+	stopLossPortion = 0.0235
 
 	def __init__(self, **kwargs):
 		super().__init__(**kwargs)
@@ -78,6 +80,7 @@ class Bot(BoxLayout):
 			ratesLow = rates["Low"].tolist()[(self.bbPeriodLength - 1):]
 			ratesRsi = ratesRsi.tolist()[(self.bbPeriodLength - self.rsiPeriodLength):]
 			bbUpper = bbUpper.tolist()[(self.bbPeriodLength - 1):]
+			bbMiddle = bbMiddle.tolist()[(self.bbPeriodLength - 1):]
 			bbLower = bbLower.tolist()[(self.bbPeriodLength - 1):]
 
 			# Determines sell, buy, or hold signals for rsi and bb
@@ -107,18 +110,15 @@ class Bot(BoxLayout):
 					self.inSellPeriod = False
 
 					if self.sellLevel == 1:
-						#sellLRC(1.0/3.0)
+						sellLRC(1.0/2.0)
 						self.buyLevel = 1
 					elif self.sellLevel == 2:
-						#sellLRC(1.0/2.0)
-						self.buyLevel = 1
-					elif self.sellLevel >= 3:
-						#sellLRC(99.0/100.0)
-						self.buyLevel = 2 
+						sellLRC(99.0/100.0)
 
-					self.stopLossUpper = bbMiddle[-1] * 1.03
-					self.stopLossLower = 0.0
-					self.sellLevel += 1
+					if sellLevel < 3:
+						self.stopLossUpper = bbMiddle[-1] * (1.0 + stopLossPortion)
+						self.stopLossLower = 0.0
+						self.sellLevel += 1
 
 			if not self.inBuyPeriod:
 				if (self.rsiSignal == "buy") and (self.bbSignal == "buy"):
@@ -131,41 +131,37 @@ class Bot(BoxLayout):
 					self.inBuyPeriod = False
 
 					if self.buyLevel == 1:
-						#buyLRC(1.0/3.0)
+						buyLRC(1.0/2.0)
 						self.sellLevel = 1
 					elif self.buyLevel == 2:
-						#buyLRC(1.0/2.0)
-						self.sellLevel = 1
-					elif self.buyLevel >= 3:
-						#buyLRC(99.0/100.0)
-						self.sellLevel = 2
-						
-					self.stopLossLower = bbMiddle[-1] * 0.97
-					self.stopLossUpper = 0.0
-					self.buyLevel += 1
+						buyLRC(99.0/100.0)
+
+					if buyLevel < 3:	
+						self.stopLossLower = bbMiddle[-1] * (1.0 - stopLossPortion)
+						self.stopLossUpper = 0.0
+						self.buyLevel += 1
 
 			if self.stopLossLower > 0.0:
-				if (bbMiddle[-2] * 0.97) > self.stopLossLower:
-					self.stopLossLower = bbMiddle[-2] * 0.97
+				if (bbMiddle[-2] * (1.0 - stopLossPortion)) > self.stopLossLower:
+					self.stopLossLower = bbMiddle[-2] * (1.0 - stopLossPortion)
 				if ratesLow[-1] < self.stopLossLower:
 					print(Fore.RED + "---StopLoss Sell at {}---".format(now) + Style.RESET_ALL)
 					sellLRC(99.0 / 100.0)
-					self.stopLossUpper = bbMiddle[-1] * 1.03
+					self.stopLossUpper = bbMiddle[-1] * (1.0 + stopLossPortion)
 					self.stopLossLower = 0.0
 					self.sellLevel = 1
 					self.buyLevel = 1
 
 			if self.stopLossUpper > 0.0:
-				if (bbMiddle[-2] * 1.03) < self.stopLossUpper:
-					self.stopLossUpper = bbMiddle[-2] * 1.03
+				if (bbMiddle[-2] * (1.0 + stopLossPortion)) < self.stopLossUpper:
+					self.stopLossUpper = bbMiddle[-2] * (1.0 + stopLossPortion)
 				if ratesHigh[-1] > self.stopLossUpper:
 					print(Fore.RED + "---StopLoss Buy at {}---".format(now) + Style.RESET_ALL)
 					buyLRC(99.0 / 100.0)
-					self.stopLossLower = bbMiddle[-1] * 0.97
+					self.stopLossLower = bbMiddle[-1] * (1.0 - stopLossPortion)
 					self.stopLossUpper = 0.0
 					self.sellLevel = 1
 					self.buyLevel = 1
-
 			
 			print(Fore.YELLOW +
 				"{} - RSI: {} BB: {}".format(now.strftime("%m/%d - %H:%M:%S"),self.rsiSignal, self.bbSignal) +
@@ -188,6 +184,11 @@ class Bot(BoxLayout):
 			print("Analyzing data")
 			# Variable holders
 			bestDelta = 0.0
+			portion = 0.95
+			
+			stopLossLower = 0.0
+			stopLossUpper = 0.0
+			stopLossPortion = 0.0235
 			thisInSellPeriod = False
 			thisInBuyPeriod = False
 
@@ -197,6 +198,7 @@ class Bot(BoxLayout):
 			topParameters = []
 
 			rates = get_historic_rates(symbol, timeSlice, outputSize)
+			rates = rates.tail(500)
 			ratesHl2Series = pd.Series((rates["High"] + rates["Low"]).div(2).values, index=rates.index)
 			
 			for thisRsiPeriodLength in range(3, 12):
@@ -225,6 +227,7 @@ class Bot(BoxLayout):
 
 								# Convert Pandas series to lists
 								bbUpper = bbUpperSeries.tolist()[(thisBbPeriodLength - 1):]
+								bbMiddle = bbMiddleSeries.tolist()[(thisBbPeriodLength - 1):]
 								bbLower = bbLowerSeries.tolist()[(thisBbPeriodLength - 1):]
 
 								# Parse through data and determine sell, buy and hold signals for RSI and BB
@@ -251,8 +254,10 @@ class Bot(BoxLayout):
 											thisInSellPeriod = True
 									else:
 										if (rsiSignals[i] != "sell") and (bbSignals[i] != "sell"):
-											usdEnd = usdEnd + (cryptoEnd * ratesHl2[i] * .995 * .95 )
-											cryptoEnd = cryptoEnd * .05
+											usdEnd = usdEnd + (cryptoEnd * ratesHl2[i] * .995 * portion)
+											cryptoEnd = cryptoEnd * (1.0 - portion)
+											stopLossUpper = bbMiddle[i] * (1.0 + stopLossPortion)
+											stopLossLower = 0.0
 											thisInSellPeriod = False
 
 									if not thisInBuyPeriod:
@@ -260,9 +265,29 @@ class Bot(BoxLayout):
 											thisInBuyPeriod = True
 									else:
 										if (rsiSignals[i] != "buy") and (bbSignals[i] != "buy"):
-											cryptoEnd = cryptoEnd + (usdEnd * .995 * .95 / ratesHl2[i])
-											usdEnd = usdEnd * .05
+											cryptoEnd = cryptoEnd + (usdEnd * .995 * portion / ratesHl2[i])
+											usdEnd = usdEnd * (1.0 - portion)
+											stopLossLower = bbMiddle[i] * (1.0 - stopLossPortion)
+											stopLossUpper = 0.0
 											thisInBuyPeriod = False
+
+									if stopLossLower > 0.0:
+										if (bbMiddle[i] * (1.0 - stopLossPortion)) > stopLossLower:
+											stopLossLower = bbMiddle[i] * (1.0 - stopLossPortion)
+										if ratesLow[i] < stopLossLower:
+											usdEnd = usdEnd + (cryptoEnd * ratesHl2[i] * .995 * portion)
+											cryptoEnd = cryptoEnd * (1.0 - portion)
+											stopLossUpper = bbMiddle[i] * (1.0 + stopLossPortion)
+											stopLossLower = 0.0
+
+									if stopLossUpper > 0.0:
+										if (bbMiddle[i] * (1.0 + stopLossPortion)) < stopLossUpper:
+											stopLossUpper = bbMiddle[i] * (1.0 + stopLossPortion)
+										if ratesHigh[i] > stopLossUpper:
+											cryptoEnd = cryptoEnd + (usdEnd * .995 * portion / ratesHl2[i])
+											usdEnd = usdEnd * (1.0 - portion)
+											stopLossLower = bbMiddle[i] * (1.0 - stopLossPortion)
+											stopLossUpper = 0.0
 
 								walletStart = 200.0
 								walletEnd = usdEnd + (cryptoEnd * ratesHl2[-1])
@@ -373,7 +398,7 @@ class Bot(BoxLayout):
 			int(size * 3 / 5) - 1,
 			int(size * 4 / 5) - 1,
 			size - 1])
-		ax1.tick_params(labelsize=7, labelrotation=0)
+		ax1.tick_params(labelsize=5, labelrotation=0)
 		ax1.grid()
 
 	def add_rsi_plot(self, ratesHl2):
@@ -389,7 +414,7 @@ class Bot(BoxLayout):
 			int(size * 3 / 5) - 1,
 			int(size * 4 / 5) - 1,
 			size - 1])
-		ax2.tick_params(labelsize=7, labelrotation=0)
+		ax2.tick_params(labelsize=5, labelrotation=0)
 		ax2.grid()
 
 
@@ -420,7 +445,6 @@ class MainApp(MDApp):
 				except Exception as err:
 					print(Fore.RED + "UPDATE-SCREEN-ERROR." + Style.RESET_ALL)
 					print(err)
-
 
 
 if __name__ == "__main__":
