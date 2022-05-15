@@ -115,8 +115,8 @@ class Bot(BoxLayout):
 					elif self.sellLevel == 2:
 						sellLRC(99.0/100.0)
 
-					if sellLevel < 3:
-						self.stopLossUpper = bbMiddle[-1] * (1.0 + stopLossPortion)
+					if self.sellLevel < 3:
+						self.stopLossUpper = bbMiddle[-1] * (1.0 + self.stopLossPortion)
 						self.stopLossLower = 0.0
 						self.sellLevel += 1
 
@@ -136,29 +136,29 @@ class Bot(BoxLayout):
 					elif self.buyLevel == 2:
 						buyLRC(99.0/100.0)
 
-					if buyLevel < 3:	
-						self.stopLossLower = bbMiddle[-1] * (1.0 - stopLossPortion)
+					if self.buyLevel < 3:	
+						self.stopLossLower = bbMiddle[-1] * (1.0 - self.stopLossPortion)
 						self.stopLossUpper = 0.0
 						self.buyLevel += 1
 
 			if self.stopLossLower > 0.0:
-				if (bbMiddle[-2] * (1.0 - stopLossPortion)) > self.stopLossLower:
-					self.stopLossLower = bbMiddle[-2] * (1.0 - stopLossPortion)
+				if (bbMiddle[-2] * (1.0 - self.stopLossPortion)) > self.stopLossLower:
+					self.stopLossLower = bbMiddle[-2] * (1.0 - self.stopLossPortion)
 				if ratesLow[-1] < self.stopLossLower:
 					print(Fore.RED + "---StopLoss Sell at {}---".format(now) + Style.RESET_ALL)
 					sellLRC(99.0 / 100.0)
-					self.stopLossUpper = bbMiddle[-1] * (1.0 + stopLossPortion)
+					self.stopLossUpper = bbMiddle[-1] * (1.0 + self.stopLossPortion)
 					self.stopLossLower = 0.0
 					self.sellLevel = 1
 					self.buyLevel = 1
 
 			if self.stopLossUpper > 0.0:
-				if (bbMiddle[-2] * (1.0 + stopLossPortion)) < self.stopLossUpper:
-					self.stopLossUpper = bbMiddle[-2] * (1.0 + stopLossPortion)
+				if (bbMiddle[-2] * (1.0 + self.stopLossPortion)) < self.stopLossUpper:
+					self.stopLossUpper = bbMiddle[-2] * (1.0 + self.stopLossPortion)
 				if ratesHigh[-1] > self.stopLossUpper:
 					print(Fore.RED + "---StopLoss Buy at {}---".format(now) + Style.RESET_ALL)
 					buyLRC(99.0 / 100.0)
-					self.stopLossLower = bbMiddle[-1] * (1.0 - stopLossPortion)
+					self.stopLossLower = bbMiddle[-1] * (1.0 - self.stopLossPortion)
 					self.stopLossUpper = 0.0
 					self.sellLevel = 1
 					self.buyLevel = 1
@@ -198,10 +198,10 @@ class Bot(BoxLayout):
 			topParameters = []
 
 			rates = get_historic_rates(symbol, timeSlice, outputSize)
-			rates = rates.tail(500)
+			rates = rates.tail(250)
 			ratesHl2Series = pd.Series((rates["High"] + rates["Low"]).div(2).values, index=rates.index)
 			
-			for thisRsiPeriodLength in range(3, 12):
+			for thisRsiPeriodLength in range(3, 11):
 				# Set RSI values
 				ratesRsiSeries = get_rsi(ratesHl2Series, thisRsiPeriodLength)
 
@@ -382,7 +382,7 @@ class Bot(BoxLayout):
 
 	# Adds new data to plt
 	def add_plot(self, ratesHl2):
-		size = 250
+		size = 150
 		(bbUpper, bbMiddle, bbLower) = get_bb(ratesHl2, self.bbPeriodLength, self.bbLevel)
 		ax1.plot(bbUpper.tail(size), label="Bollinger Up", c="b")
 		ax1.plot(bbMiddle.tail(size), label="Bollinger Middle", c="black")
@@ -398,7 +398,7 @@ class Bot(BoxLayout):
 		ax1.grid()
 
 	def add_rsi_plot(self, ratesHl2):
-		size = 250
+		size = 150
 		rsi = get_rsi(ratesHl2, self.rsiPeriodLength)
 		#plt = plot_rsi(rsi, self.rsiUpperBound, self.rsiLowerBound)
 		ax2.plot(rsi.tail(size), label="RSI", c="r")
