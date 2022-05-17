@@ -117,8 +117,6 @@ class Bot(BoxLayout):
 						self.buyLevel = 1
 					elif self.sellLevel == 2:
 						sellLRC(99.0/100.0)
-
-					if self.sellLevel < 3:
 						self.stopLossUpper = bbMiddle[-1] * (1.0 + self.stopLossPortion)
 						self.stopLossLower = 0.0
 						self.sellLevel += 1
@@ -140,8 +138,6 @@ class Bot(BoxLayout):
 						self.sellLevel = 1
 					elif self.buyLevel == 2:
 						buyLRC(99.0/100.0)
-
-					if self.buyLevel < 3:	
 						self.stopLossLower = bbMiddle[-1] * (1.0 - self.stopLossPortion)
 						self.stopLossUpper = 0.0
 						self.buyLevel += 1
