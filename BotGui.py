@@ -24,6 +24,7 @@ import matplotlib.pyplot as plt
 
 # File imports
 from HelperFuncs import *
+from Contact import *
 from auth_cred import (api_secret, api_key, api_pass)
 
 # Set url and authticate client
@@ -43,11 +44,11 @@ outputSize = "full"
 class Bot(BoxLayout):
 	# sets properties
 	seconds_string = StringProperty("")
-	rsiPeriodLength = NumericProperty(10)
-	rsiUpperBound = NumericProperty(74.0)
+	rsiPeriodLength = NumericProperty(3)
+	rsiUpperBound = NumericProperty(76.0)
 	rsiLowerBound = NumericProperty(16.0)
-	bbPeriodLength = NumericProperty(12)
-	bbLevel = NumericProperty(3.0)
+	bbPeriodLength = NumericProperty(5)
+	bbLevel = NumericProperty(2.5)
 	inSellPeriod = BooleanProperty(False)
 	inBuyPeriod = BooleanProperty(False)
 	rsiSignal = StringProperty("hold")
@@ -102,9 +103,11 @@ class Bot(BoxLayout):
 			if not self.inSellPeriod:
 				if (self.rsiSignal == "sell") and (self.bbSignal == "sell"):
 					self.inSellPeriod = True
+					send_msg("Sell signal triggered")
 					print(Fore.GREEN + "Sell signal" + Style.RESET_ALL)
 			else:
 				if (self.rsiSignal != "sell") and (self.bbSignal != "sell"):
+					send_msg("SELL - {}\nlevel: {}".format(ratesLow[-1], self.sellLevel))
 					print(Fore.GREEN + "---Sell at {}---".format(now) + Style.RESET_ALL)
 					print("level: {}".format(self.sellLevel))
 					self.inSellPeriod = False
@@ -123,9 +126,11 @@ class Bot(BoxLayout):
 			if not self.inBuyPeriod:
 				if (self.rsiSignal == "buy") and (self.bbSignal == "buy"):
 					self.inBuyPeriod = True
+					send_msg("Buy signal triggered")
 					print(Fore.GREEN + "Buy signal" + Style.RESET_ALL)
 			else:
 				if (self.rsiSignal != "buy") and (self.bbSignal != "buy"):
+					send_msg("BUY - {}\nlevel: {}".format(ratesHigh[-1], self.sellLevel))
 					print(Fore.GREEN + "---Buy at {}---".format(now) + Style.RESET_ALL)
 					print("level: {}:".format(self.buyLevel))
 					self.inBuyPeriod = False
@@ -145,6 +150,7 @@ class Bot(BoxLayout):
 				if (bbMiddle[-2] * (1.0 - self.stopLossPortion)) > self.stopLossLower:
 					self.stopLossLower = bbMiddle[-2] * (1.0 - self.stopLossPortion)
 				if ratesLow[-1] < self.stopLossLower:
+					send_msg("STOPLOSS SELL - {}".format(ratesLow[-1]))
 					print(Fore.RED + "---StopLoss Sell at {}---".format(now) + Style.RESET_ALL)
 					sellLRC(99.0 / 100.0)
 					self.stopLossUpper = bbMiddle[-1] * (1.0 + self.stopLossPortion)
@@ -156,6 +162,7 @@ class Bot(BoxLayout):
 				if (bbMiddle[-2] * (1.0 + self.stopLossPortion)) < self.stopLossUpper:
 					self.stopLossUpper = bbMiddle[-2] * (1.0 + self.stopLossPortion)
 				if ratesHigh[-1] > self.stopLossUpper:
+					send_msg("STOPLOSS SELL - {}".format(ratesLow[-1]))
 					print(Fore.RED + "---StopLoss Buy at {}---".format(now) + Style.RESET_ALL)
 					buyLRC(99.0 / 100.0)
 					self.stopLossLower = bbMiddle[-1] * (1.0 - self.stopLossPortion)
@@ -172,6 +179,7 @@ class Bot(BoxLayout):
 
 		# Catches error in Strategy thread and prints to screen
 		except Exception as err:
+			send_msg("STRATEGY-ERROR\nCheck to see if bot is functioning")
 			print(Fore.RED + "STRATEGY-ERROR." + Style.RESET_ALL)
 			print(err)
 
@@ -207,7 +215,7 @@ class Bot(BoxLayout):
 
 				for thisRsiUpperBound in range(84, 62, -2):
 					for thisRsiLowerBound in range(16, 38, 2):
-						for thisBbPeriodLength in range(thisRsiPeriodLength, 26, 2):
+						for thisBbPeriodLength in range(thisRsiPeriodLength, 18, 2):
 							# Convert Pandas series to lists
 							ratesHigh = rates["High"].tolist()[(thisBbPeriodLength - 1):]
 							ratesLow = rates["Low"].tolist()[(thisBbPeriodLength - 1):]
@@ -347,6 +355,7 @@ class Bot(BoxLayout):
 
 		# Catches error in Analyze thread and prints to screen
 		except Exception as err:
+			send_msg("ANALYZE-ERROR\nCheck to see if bot is functioning")
 			print(Fore.RED + "ANALYZE-ERROR." + Style.RESET_ALL)
 			print(err)
 
@@ -421,6 +430,7 @@ class MainApp(MDApp):
 		self.theme_cls.theme_style = "Dark"
 		self.theme_cls.primary_palette = "BlueGray"
 		Builder.load_file("Bot.kv")
+		send_msg("Bot started")
 		return Bot()
 
 	def update_screen(self):
