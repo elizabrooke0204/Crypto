@@ -119,7 +119,8 @@ class Bot(BoxLayout):
 						sellLRC(99.0/100.0)
 						self.stopLossUpper = bbMiddle[-1] * (1.0 + self.stopLossPortion)
 						self.stopLossLower = 0.0
-						self.sellLevel += 1
+					
+					self.sellLevel += 1
 
 			if not self.inBuyPeriod:
 				if (self.rsiSignal == "buy") and (self.bbSignal == "buy"):
@@ -140,7 +141,8 @@ class Bot(BoxLayout):
 						buyLRC(99.0/100.0)
 						self.stopLossLower = bbMiddle[-1] * (1.0 - self.stopLossPortion)
 						self.stopLossUpper = 0.0
-						self.buyLevel += 1
+						
+					self.buyLevel += 1
 
 			if self.stopLossLower > 0.0:
 				if (bbMiddle[-2] * (1.0 - self.stopLossPortion)) > self.stopLossLower:
@@ -430,9 +432,17 @@ class MainApp(MDApp):
 		return Bot()
 
 	def update_screen(self):
-		self.root.seconds_string = time.strftime("%S")
+		if time.strftime("%S") != "00":
+			minutes = 4 - (int(time.strftime("%-M")) % 5)
+			seconds = 60 - (int(time.strftime("%-S")))
+			if seconds < 10:
+				self.root.seconds_string = str(minutes) + ":0" + str(seconds)
+			else:
+				self.root.seconds_string = str(minutes) + ":" + str(seconds)
+
 		# STATEGY THREAD
-		if time.strftime("%S") == "00":
+		else:
+			self.root.seconds_string = str(5 - (int(time.strftime("%-M")) % 5)) + ":00"
 			if float(time.strftime("%-M")) % 5 == 0:
 				try:
 					rates = get_historic_rates(symbol, timeSlice, outputSize)
