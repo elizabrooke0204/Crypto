@@ -103,14 +103,14 @@
 						BoxLayout:
 							orientation: "vertical"
 							Label:
-								text: "Stop Loss Upper"
+								text: "StopLoss Upper"
 							Label:
 								id: stoploss_upper_var
 								text: "0.0"
 						BoxLayout:
 							orientation: "vertical"
 							Label:
-								text: "Stop Loss Lower"
+								text: "StopLoss Lower"
 							Label:
 								id: stoploss_lower_var
 								text: "0.0"
@@ -119,9 +119,13 @@
 				Label:
 					text: "UPDATE SETTINGS"
 
+		Label:
+			size_hint_y: .05
+			text: "Graph refresh in"
+			font_size: 15
 
 		Label:
 			id: kv_sec
-			size_hint_y: .2
+			size_hint_y: .15
 			text: root.seconds_string
 			font_size: 50
