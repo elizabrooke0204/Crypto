@@ -160,7 +160,7 @@ class Bot(BoxLayout):
 				if (bbMiddle[-2] * (1.0 + self.stopLossPortion)) < self.stopLossUpper:
 					self.stopLossUpper = bbMiddle[-2] * (1.0 + self.stopLossPortion)
 				if ratesHigh[-1] > self.stopLossUpper:
-					send_msg("STOPLOSS SELL - {}".format(ratesLow[-1]))
+					send_msg("STOPLOSS BUY - {}".format(ratesLow[-1]))
 					print(Fore.RED + "---StopLoss Buy at {}---".format(now) + Style.RESET_ALL)
 					buyLRC(99.0 / 100.0)
 					self.stopLossLower = bbMiddle[-1] * (1.0 - self.stopLossPortion)
@@ -455,6 +455,7 @@ class MainApp(MDApp):
 					self.root.run_strategy_rsi_bb(rates.tail(500))
 					self.root.update_variables(rates.tail(500))
 				except Exception as err:
+					send_msg("UPDATE-SCREEN-ERROR\nCheck to see if bot is functioning")
 					print(Fore.RED + "UPDATE-SCREEN-ERROR." + Style.RESET_ALL)
 					print(err)
 
