@@ -54,11 +54,9 @@ class Bot(BoxLayout):
 	rsiSignal = StringProperty("hold")
 	bbSignal = StringProperty("hold")
 
-	sellLevel = 1
-	buyLevel = 1
 	stopLossUpper = 0.0
 	stopLossLower = 0.0
-	stopLossPortion = 0.0235
+	stopLossPortion = 0.0245
 
 	def __init__(self, **kwargs):
 		super().__init__(**kwargs)
@@ -102,47 +100,31 @@ class Bot(BoxLayout):
 			# Determines sell, buy, or hold action for bot
 			if not self.inSellPeriod:
 				if (self.rsiSignal == "sell") and (self.bbSignal == "sell"):
-					self.inSellPeriod = True
 					send_msg("Sell signal triggered")
 					print(Fore.GREEN + "Sell signal" + Style.RESET_ALL)
+					self.inSellPeriod = True
 			else:
 				if (self.rsiSignal != "sell") and (self.bbSignal != "sell"):
-					send_msg("SELL - {}\nlevel: {}".format(ratesLow[-1], self.sellLevel))
+					send_msg("SELL - {}".format(ratesLow[-1]))
 					print(Fore.GREEN + "---Sell at {}---".format(now) + Style.RESET_ALL)
-					print("level: {}".format(self.sellLevel))
+					sellLRC(99.0/100.0)
 					self.inSellPeriod = False
-
-					if self.sellLevel == 1:
-						sellLRC(1.0/2.0)
-						self.buyLevel = 1
-					elif self.sellLevel == 2:
-						sellLRC(99.0/100.0)
-						self.stopLossUpper = bbMiddle[-1] * (1.0 + self.stopLossPortion)
-						self.stopLossLower = 0.0
+					self.stopLossUpper = bbMiddle[-1] * (1.0 + self.stopLossPortion)
+					self.stopLossLower = 0.0
 					
-					self.sellLevel += 1
-
 			if not self.inBuyPeriod:
 				if (self.rsiSignal == "buy") and (self.bbSignal == "buy"):
-					self.inBuyPeriod = True
 					send_msg("Buy signal triggered")
 					print(Fore.GREEN + "Buy signal" + Style.RESET_ALL)
+					self.inBuyPeriod = True
 			else:
 				if (self.rsiSignal != "buy") and (self.bbSignal != "buy"):
-					send_msg("BUY - {}\nlevel: {}".format(ratesHigh[-1], self.sellLevel))
+					send_msg("BUY - {}".format(ratesHigh[-1]))
 					print(Fore.GREEN + "---Buy at {}---".format(now) + Style.RESET_ALL)
-					print("level: {}:".format(self.buyLevel))
+					buyLRC(99.0/100.0)
 					self.inBuyPeriod = False
-
-					if self.buyLevel == 1:
-						buyLRC(1.0/2.0)
-						self.sellLevel = 1
-					elif self.buyLevel == 2:
-						buyLRC(99.0/100.0)
-						self.stopLossLower = bbMiddle[-1] * (1.0 - self.stopLossPortion)
-						self.stopLossUpper = 0.0
-						
-					self.buyLevel += 1
+					self.stopLossLower = bbMiddle[-1] * (1.0 - self.stopLossPortion)
+					self.stopLossUpper = 0.0
 
 			if self.stopLossLower > 0.0:
 				if (bbMiddle[-2] * (1.0 - self.stopLossPortion)) > self.stopLossLower:
@@ -153,8 +135,6 @@ class Bot(BoxLayout):
 					sellLRC(99.0 / 100.0)
 					self.stopLossUpper = bbMiddle[-1] * (1.0 + self.stopLossPortion)
 					self.stopLossLower = 0.0
-					self.sellLevel = 1
-					self.buyLevel = 1
 
 			if self.stopLossUpper > 0.0:
 				if (bbMiddle[-2] * (1.0 + self.stopLossPortion)) < self.stopLossUpper:
@@ -165,8 +145,6 @@ class Bot(BoxLayout):
 					buyLRC(99.0 / 100.0)
 					self.stopLossLower = bbMiddle[-1] * (1.0 - self.stopLossPortion)
 					self.stopLossUpper = 0.0
-					self.sellLevel = 1
-					self.buyLevel = 1
 			
 			print(Fore.YELLOW +
 				"{} - RSI: {} BB: {}".format(now.strftime("%m/%d - %H:%M:%S"),self.rsiSignal, self.bbSignal) +
