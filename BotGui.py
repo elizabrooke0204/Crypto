@@ -370,6 +370,11 @@ class MainApp(MDApp):
 		send_msg("Bot started")
 		return Bot()
 
+	def on_start(self, **kwargs):
+		rates = get_historic_rates(symbol, timeSlice, outputSize)
+		self.root.run_strategy_rsi_bb(rates.tail(500))
+		self.root.update_variables(rates.tail(500))
+
 	def update_screen(self):
 		if time.strftime("%S") != "00":
 			minutes = 4 - (int(time.strftime("%-M")) % 5)
