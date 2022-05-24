@@ -285,14 +285,20 @@ def buyLRC(portion):
 
 # ------------------------------- Get-available functions ---------------------------------
 
+def get_orders():
+	orders = client.get_orders()
+	for order in orders:
+		print(order)
+
+
 def getAskPrice(symbolPair):
 	price = client.get_product_ticker(product_id=symbolPair)["ask"]
-	return (round(float(price) * 1.0005, 4))
+	return (round(float(price) * 0.9995, 4))
 
 
 def getBidPrice(symbolPair):
 	price = client.get_product_ticker(product_id=symbolPair)["bid"]
-	return (round(float(price) * 0.9995, 4))
+	return (round(float(price) * 1.0005, 4))
 
 
 def getAvailableBTC(portion):
