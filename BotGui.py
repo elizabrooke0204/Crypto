@@ -158,7 +158,7 @@ class Bot(BoxLayout):
 
 			rates = get_historic_rates(symbol, timeSlice, outputSize)
 			rates = rates.tail(250)
-			ratesHl2Series = pd.Series((rates["High"] + rates["Low"]).div(2).values, index=rates.index)
+			ratesHl2Series = pd.Series((rates["High"] + rates["Low"] + rates["Close"]).div(3).values, index=rates.index)
 			
 			for thisRsiPeriodLength in range(3, 11):
 				# Set RSI values
@@ -278,9 +278,9 @@ class Bot(BoxLayout):
 				self.bbPeriodLength = topParameters[-1][4]
 				self.bbLevel = topParameters[-1][5]
 				if self.inSellPeriod == False:
-					sell.inSellPeriod = topParameters[-1][5]
+					self.inSellPeriod = topParameters[-1][5]
 				if self.inBuyPeriod == False:
-					sell.inBuyPeriod = topParameters[-1][5]
+					self.inBuyPeriod = topParameters[-1][5]
 
 				print("Parameters updated to:")
 				print(topParameters[-1])
