@@ -277,6 +277,10 @@ class Bot(BoxLayout):
 				self.rsiLowerBound = topParameters[-1][3]
 				self.bbPeriodLength = topParameters[-1][4]
 				self.bbLevel = topParameters[-1][5]
+				if self.inSellPeriod == False:
+					sell.inSellPeriod = topParameters[-1][5]
+				if self.inBuyPeriod == False:
+					sell.inBuyPeriod = topParameters[-1][5]
 
 				print("Parameters updated to:")
 				print(topParameters[-1])
