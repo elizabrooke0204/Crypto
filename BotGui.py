@@ -74,83 +74,60 @@ class Bot(BoxLayout):
 			ratesRsi = get_rsi(ratesHl2, self.rsiPeriodLength)
 			(bbUpper, bbMiddle, bbLower) = get_bb(ratesHl2, self.bbPeriodLength, self.bbLevel)
 
-			# Sets rates, high/low average, rsi values and bb bands to lists of equal length
-			ratesHigh = rates["High"].tolist()[(self.bbPeriodLength - 1):]
-			ratesLow = rates["Low"].tolist()[(self.bbPeriodLength - 1):]
-			ratesRsi = ratesRsi.tolist()[(self.bbPeriodLength - self.rsiPeriodLength):]
-			bbUpper = bbUpper.tolist()[(self.bbPeriodLength - 1):]
-			bbMiddle = bbMiddle.tolist()[(self.bbPeriodLength - 1):]
-			bbLower = bbLower.tolist()[(self.bbPeriodLength - 1):]
-
-			# Determines sell, buy, or hold signals for rsi and bb
-			if ratesRsi[-1] > self.rsiUpperBound:
-				self.rsiSignal = "sell"
-			elif ratesRsi[-1] < self.rsiLowerBound:
-				self.rsiSignal = "buy"
-			else:
-				self.rsiSignal = "hold"
-
-			if ratesHigh[-1] > bbUpper[-1]:
-				self.bbSignal = "sell"
-			elif ratesLow[-1] < bbLower[-1]:
-				self.bbSignal = "buy"
-			else:
-				self.bbSignal = "hold"
-
 			# Determines sell, buy, or hold action for bot
 			if not self.inSellPeriod:
-				if (self.rsiSignal == "sell") and (self.bbSignal == "sell"):
+				if (ratesRsi.iloc[-1] > self.rsiUpperBound) and (rates["High"].iloc[-1] > bbUpper.iloc[-1]):
 					send_msg("Sell signal triggered")
 					print(Fore.GREEN + "Sell signal" + Style.RESET_ALL)
 					self.inSellPeriod = True
 			else:
-				if (self.rsiSignal != "sell") and (self.bbSignal != "sell"):
-					send_msg("SELL - {}".format(ratesLow[-1]))
+				if (ratesRsi.iloc[-1] <= self.rsiUpperBound) and (rates["High"].iloc[-1] <= bbUpper.iloc[-1]):
+					send_msg("SELL - {}".format(rates["Low"].iloc[-1]))
 					print(Fore.GREEN + "---Sell at {}---".format(now) + Style.RESET_ALL)
 					sellLRC(99.0/100.0)
 					self.inSellPeriod = False
-					self.stopLossUpper = bbMiddle[-1] * (1.0 + self.stopLossPortion)
+					self.stopLossUpper = bbMiddle.iloc[-1] * (1.0 + self.stopLossPortion)
 					self.stopLossLower = 0.0
 					
 			if not self.inBuyPeriod:
-				if (self.rsiSignal == "buy") and (self.bbSignal == "buy"):
+				if (ratesRsi.iloc[-1] < self.rsiLowerBound) and (rates["Low"].iloc[-1] < bbLower.iloc[-1]):
 					send_msg("Buy signal triggered")
 					print(Fore.GREEN + "Buy signal" + Style.RESET_ALL)
 					self.inBuyPeriod = True
 			else:
-				if (self.rsiSignal != "buy") and (self.bbSignal != "buy"):
-					send_msg("BUY - {}".format(ratesHigh[-1]))
+				if (ratesRsi.iloc[-1] >= self.rsiLowerBound) and (rates["Low"].iloc[-1] >= bbLower.iloc[-1]):
+					send_msg("BUY - {}".format(rates["High"].iloc[-1]))
 					print(Fore.GREEN + "---Buy at {}---".format(now) + Style.RESET_ALL)
 					buyLRC(99.0/100.0)
 					self.inBuyPeriod = False
-					self.stopLossLower = bbMiddle[-1] * (1.0 - self.stopLossPortion)
+					self.stopLossLower = bbMiddle.iloc[-1] * (1.0 - self.stopLossPortion)
 					self.stopLossUpper = 0.0
 
 			if self.stopLossLower > 0.0:
-				if (bbMiddle[-2] * (1.0 - self.stopLossPortion)) > self.stopLossLower:
-					self.stopLossLower = bbMiddle[-2] * (1.0 - self.stopLossPortion)
-				if ratesLow[-1] < self.stopLossLower:
-					send_msg("STOPLOSS SELL - {}".format(ratesLow[-1]))
+				if (bbMiddle.iloc[-1] * (1.0 - self.stopLossPortion)) > self.stopLossLower:
+					self.stopLossLower = bbMiddle.iloc[-1] * (1.0 - self.stopLossPortion)
+				if rates["Low"].iloc[-1] < self.stopLossLower:
+					send_msg("STOPLOSS SELL - {}".format(rates["Low"].iloc[-1]))
 					print(Fore.RED + "---StopLoss Sell at {}---".format(now) + Style.RESET_ALL)
 					sellLRC(99.0 / 100.0)
-					self.stopLossUpper = bbMiddle[-1] * (1.0 + self.stopLossPortion)
+					self.stopLossUpper = bbMiddle.iloc[-1] * (1.0 + self.stopLossPortion)
 					self.stopLossLower = 0.0
 
 			if self.stopLossUpper > 0.0:
-				if (bbMiddle[-2] * (1.0 + self.stopLossPortion)) < self.stopLossUpper:
-					self.stopLossUpper = bbMiddle[-2] * (1.0 + self.stopLossPortion)
-				if ratesHigh[-1] > self.stopLossUpper:
-					send_msg("STOPLOSS BUY - {}".format(ratesLow[-1]))
+				if (bbMiddle.iloc[-1] * (1.0 + self.stopLossPortion)) < self.stopLossUpper:
+					self.stopLossUpper = bbMiddle.iloc[-1] * (1.0 + self.stopLossPortion)
+				if rates["High"].iloc[-1] > self.stopLossUpper:
+					send_msg("STOPLOSS BUY - {}".format(rates["Low"].iloc[-1]))
 					print(Fore.RED + "---StopLoss Buy at {}---".format(now) + Style.RESET_ALL)
 					buyLRC(99.0 / 100.0)
-					self.stopLossLower = bbMiddle[-1] * (1.0 - self.stopLossPortion)
+					self.stopLossLower = bbMiddle.iloc[-1] * (1.0 - self.stopLossPortion)
 					self.stopLossUpper = 0.0
 			
 			print(Fore.YELLOW +
 				"{} - RSI: {} BB: {}".format(now.strftime("%m/%d - %H:%M:%S"),self.rsiSignal, self.bbSignal) +
 				Style.RESET_ALL)
-			print("   RSI: {:.3f}, Upper: {}, Lower: {}".format(ratesRsi[-1], self.rsiUpperBound, self.rsiLowerBound))
-			print("   bbUpper: {:.3f} - High: {:.3f} | Low: {:.3f} - bbLower: {:.3f}".format(bbUpper[-1], ratesHigh[-1], ratesLow[-1], bbLower[-1]))
+			print("   RSI: {:.3f}, Upper: {}, Lower: {}".format(ratesRsi.iloc[-1], self.rsiUpperBound, self.rsiLowerBound))
+			print("   bbUpper: {:.3f} - High: {:.3f} | Low: {:.3f} - bbLower: {:.3f}".format(bbUpper.iloc[-1], rates["High"].iloc[-1], rates["Low"].iloc[-1], bbLower.iloc[-1]))
 			print("   self.stopLossUpper: {:.3f} | self.stopLossLower: {:.3f}".format(self.stopLossUpper, self.stopLossLower))
 
 		# Catches error in Strategy thread and prints to screen
@@ -172,12 +149,10 @@ class Bot(BoxLayout):
 
 			stopLossLower = 0.0
 			stopLossUpper = 0.0
-			stopLossPortion = 0.0235
+			stopLossPortion = 0.0245
 			thisInSellPeriod = False
 			thisInBuyPeriod = False
 
-			rsiSignals = []
-			bbSignals = []
 			currentTopParameters = []
 			topParameters = []
 
@@ -214,30 +189,14 @@ class Bot(BoxLayout):
 								bbMiddle = bbMiddleSeries.tolist()[(thisBbPeriodLength - 1):]
 								bbLower = bbLowerSeries.tolist()[(thisBbPeriodLength - 1):]
 
-								# Parse through data and determine sell, buy and hold signals for RSI and BB
-								for i in range(len(dates)):
-									if ratesRsi[i] > thisRsiUpperBound:
-										rsiSignals.append("sell")
-									elif ratesRsi[i] < thisRsiLowerBound:
-										rsiSignals.append("buy")
-									else:
-										rsiSignals.append("hold")
-
-									if ratesHigh[i] > bbUpper[i]:
-										bbSignals.append("sell")
-									elif ratesLow[i] < bbLower[i]:
-										bbSignals.append("buy")
-									else:
-										bbSignals.append("hold")
-
 								# Parse through data and determine buy or sell times and prices
 								# Calculates endWallet
 								for i in range(len(dates)):
 									if not thisInSellPeriod:
-										if (rsiSignals[i] == "sell") and (bbSignals[i] == "sell"):
+										if (ratesRsi[i] > thisRsiUpperBound) and (ratesHigh[i] > bbUpper[i]):
 											thisInSellPeriod = True
 									else:
-										if (rsiSignals[i] != "sell") and (bbSignals[i] != "sell"):
+										if (ratesRsi[i] <= thisRsiUpperBound) and (ratesHigh[i] <= bbUpper[i]):
 											usdEnd = usdEnd + (cryptoEnd * ratesHl2[i] * .995 * portion)
 											cryptoEnd = cryptoEnd * (1.0 - portion)
 											stopLossUpper = bbMiddle[i] * (1.0 + stopLossPortion)
@@ -245,10 +204,10 @@ class Bot(BoxLayout):
 											thisInSellPeriod = False
 
 									if not thisInBuyPeriod:
-										if (rsiSignals[i] == "buy") and (bbSignals[i] == "buy"):
+										if (ratesRsi[i] < thisRsiLowerBound) and (ratesLow[i] < bbLower[i]):
 											thisInBuyPeriod = True
 									else:
-										if (rsiSignals[i] != "buy") and (bbSignals[i] != "buy"):
+										if (ratesRsi[i] >= thisRsiLowerBound) and (ratesLow[i] >= bbLower[i]):
 											cryptoEnd = cryptoEnd + (usdEnd * .995 * portion / ratesHl2[i])
 											usdEnd = usdEnd * (1.0 - portion)
 											stopLossLower = bbMiddle[i] * (1.0 - stopLossPortion)
@@ -288,8 +247,6 @@ class Bot(BoxLayout):
 										thisBbPeriodLength, thisBbLevel, thisInSellPeriod, thisInBuyPeriod])
 
 								# Reset variable holders
-								rsiSignals = []
-								bbSignals = []
 								thisInSellPeriod = False
 								thisInBuyPeriod = False
 
@@ -310,19 +267,19 @@ class Bot(BoxLayout):
 			# Print top parameter combinations if found
 			if len(topParameters) > 0:
 				print("delta, rsiP, rsiU, rsiL, bbP, bbLvl, sellAcPer, BuyActPer")
-				topParameters.sort(reverse=True)
+				topParameters.sort()
 				for parameters in topParameters:
 					print(parameters)
 
 				# Updates parameters with new values
-				self.rsiPeriodLength = topParameters[0][1]
-				self.rsiUpperBound = topParameters[0][2]
-				self.rsiLowerBound = topParameters[0][3]
-				self.bbPeriodLength = topParameters[0][4]
-				self.bbLevel = topParameters[0][5]
+				self.rsiPeriodLength = topParameters[-1][1]
+				self.rsiUpperBound = topParameters[-1][2]
+				self.rsiLowerBound = topParameters[-1][3]
+				self.bbPeriodLength = topParameters[-1][4]
+				self.bbLevel = topParameters[-1][5]
 
 				print("Parameters updated to:")
-				print(topParameters[0])
+				print(topParameters[-1])
 
 			else:
 				print(Fore.RED +
@@ -424,14 +381,14 @@ class MainApp(MDApp):
 			if float(time.strftime("%-M")) % 5 == 0:
 				try:
 					rates = get_historic_rates(symbol, timeSlice, outputSize)
+					self.root.run_strategy_rsi_bb(rates.tail(500))
+					self.root.update_variables(rates.tail(500))
 
 					# ANALYZE THREAD
 					if time.strftime("%M") == "00":
 						analyzeThread = threading.Thread(target=self.root.analyze_rsi_bb, daemon=True)
 						analyzeThread.start()
 
-					self.root.run_strategy_rsi_bb(rates.tail(500))
-					self.root.update_variables(rates.tail(500))
 				except Exception as err:
 					send_msg("UPDATE-SCREEN-ERROR\nCheck to see if bot is functioning")
 					print(Fore.RED + "UPDATE-SCREEN-ERROR." + Style.RESET_ALL)
