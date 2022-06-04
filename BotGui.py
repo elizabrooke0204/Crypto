@@ -43,16 +43,14 @@ outputSize = "full"
 
 class Bot(BoxLayout):
 	# sets properties
-	seconds_string = StringProperty("")
-	rsiPeriodLength = NumericProperty(3)
-	rsiUpperBound = NumericProperty(76.0)
-	rsiLowerBound = NumericProperty(16.0)
-	bbPeriodLength = NumericProperty(5)
+	counter = StringProperty("")
+	rsiPeriodLength = NumericProperty(10)
+	rsiUpperBound = NumericProperty(70.0)
+	rsiLowerBound = NumericProperty(30.0)
+	bbPeriodLength = NumericProperty(10)
 	bbLevel = NumericProperty(2.5)
 	inSellPeriod = BooleanProperty(False)
 	inBuyPeriod = BooleanProperty(False)
-	rsiSignal = StringProperty("hold")
-	bbSignal = StringProperty("hold")
 
 	stopLossUpper = 0.0
 	stopLossLower = 0.0
@@ -124,7 +122,7 @@ class Bot(BoxLayout):
 					self.stopLossUpper = 0.0
 			
 			print(Fore.YELLOW +
-				"{} - RSI: {} BB: {}".format(now.strftime("%m/%d - %H:%M:%S"),self.rsiSignal, self.bbSignal) +
+				"{} - InSellPeriod: {} InBuyPeriod: {}".format(now.strftime("%m/%d - %H:%M:%S"),self.inSellPeriod, self.inBuyPeriod) +
 				Style.RESET_ALL)
 			print("   RSI: {:.3f}, Upper: {}, Lower: {}".format(ratesRsi.iloc[-1], self.rsiUpperBound, self.rsiLowerBound))
 			print("   bbUpper: {:.3f} - High: {:.3f} | Low: {:.3f} - bbLower: {:.3f}".format(bbUpper.iloc[-1], rates["High"].iloc[-1], rates["Low"].iloc[-1], bbLower.iloc[-1]))
@@ -137,7 +135,7 @@ class Bot(BoxLayout):
 			print(err)
 
 
-	def analyze_rsi_bb(self):
+	def analyze_rsi_bb(self, rates):
 		print("Analyze thread started")
 		now = datetime.now()
 		try:
@@ -156,9 +154,7 @@ class Bot(BoxLayout):
 			currentTopParameters = []
 			topParameters = []
 
-			rates = get_historic_rates(symbol, timeSlice, outputSize)
-			rates = rates.tail(250)
-			ratesHl2Series = pd.Series((rates["High"] + rates["Low"] + rates["Close"]).div(3).values, index=rates.index)
+			ratesHl2Series = pd.Series((rates["High"] + rates["Low"]).div(2).values, index=rates.index)
 			
 			for thisRsiPeriodLength in range(3, 11):
 				# Set RSI values
@@ -278,9 +274,9 @@ class Bot(BoxLayout):
 				self.bbPeriodLength = topParameters[-1][4]
 				self.bbLevel = topParameters[-1][5]
 				if self.inSellPeriod == False:
-					self.inSellPeriod = topParameters[-1][5]
+					self.inSellPeriod = topParameters[-1][6]
 				if self.inBuyPeriod == False:
-					self.inBuyPeriod = topParameters[-1][5]
+					self.inBuyPeriod = topParameters[-1][7]
 
 				print("Parameters updated to:")
 				print(topParameters[-1])
@@ -380,13 +376,13 @@ class MainApp(MDApp):
 			minutes = 4 - (int(time.strftime("%-M")) % 5)
 			seconds = 60 - (int(time.strftime("%-S")))
 			if seconds < 10:
-				self.root.seconds_string = str(minutes) + ":0" + str(seconds)
+				self.root.counter = str(minutes) + ":0" + str(seconds)
 			else:
-				self.root.seconds_string = str(minutes) + ":" + str(seconds)
+				self.root.counter = str(minutes) + ":" + str(seconds)
 
 		# STATEGY THREAD
 		else:
-			self.root.seconds_string = str(5 - (int(time.strftime("%-M")) % 5)) + ":00"
+			self.root.counter = str(5 - (int(time.strftime("%-M")) % 5)) + ":00"
 			if float(time.strftime("%-M")) % 5 == 0:
 				try:
 					rates = get_historic_rates(symbol, timeSlice, outputSize)
@@ -395,7 +391,7 @@ class MainApp(MDApp):
 
 					# ANALYZE THREAD
 					if time.strftime("%M") == "00":
-						analyzeThread = threading.Thread(target=self.root.analyze_rsi_bb, daemon=True)
+						analyzeThread = threading.Thread(target=self.root.analyze_rsi_bb, args=(rates.tail(250),), daemon=True)
 						analyzeThread.start()
 
 				except Exception as err:
