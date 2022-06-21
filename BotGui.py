@@ -42,7 +42,7 @@ outputSize = "full"
 
 
 class Bot(BoxLayout):
-	# sets properties
+	# sets properties with initial values
 	counter = StringProperty("")
 	rsiPeriodLength = NumericProperty(10)
 	rsiUpperBound = NumericProperty(70.0)
@@ -54,7 +54,7 @@ class Bot(BoxLayout):
 
 	stopLossUpper = 0.0
 	stopLossLower = 0.0
-	stopLossPortion = 0.0245
+	stopLossPortion = 0.025
 
 	def __init__(self, **kwargs):
 		super().__init__(**kwargs)
@@ -84,7 +84,7 @@ class Bot(BoxLayout):
 					print(Fore.GREEN + "---Sell at {}---".format(now) + Style.RESET_ALL)
 					sellLRC(99.0/100.0)
 					self.inSellPeriod = False
-					self.stopLossUpper = bbMiddle.iloc[-1] * (1.0 + self.stopLossPortion)
+					self.stopLossUpper = max(bbMiddle.iloc[-1], rates["High"].iloc[-1]) * (1.0 + self.stopLossPortion)
 					self.stopLossLower = 0.0
 					
 			if not self.inBuyPeriod:
@@ -98,27 +98,27 @@ class Bot(BoxLayout):
 					print(Fore.GREEN + "---Buy at {}---".format(now) + Style.RESET_ALL)
 					buyLRC(99.0/100.0)
 					self.inBuyPeriod = False
-					self.stopLossLower = bbMiddle.iloc[-1] * (1.0 - self.stopLossPortion)
+					self.stopLossLower = min(bbMiddle.iloc[-1], rates["Low"].iloc[-1]) * (1.0 - self.stopLossPortion)
 					self.stopLossUpper = 0.0
 
 			if self.stopLossLower > 0.0:
-				if (bbMiddle.iloc[-1] * (1.0 - self.stopLossPortion)) > self.stopLossLower:
-					self.stopLossLower = bbMiddle.iloc[-1] * (1.0 - self.stopLossPortion)
+				if (min(bbMiddle.iloc[-1], rates["Low"].iloc[-1]) * (1.0 - self.stopLossPortion)) > self.stopLossLower:
+					self.stopLossLower = min(bbMiddle.iloc[-1], rates["Low"].iloc[-1]) * (1.0 - self.stopLossPortion)
 				if rates["Low"].iloc[-1] < self.stopLossLower:
 					send_msg("STOPLOSS SELL - {}".format(rates["Low"].iloc[-1]))
 					print(Fore.RED + "---StopLoss Sell at {}---".format(now) + Style.RESET_ALL)
 					sellLRC(99.0 / 100.0)
-					self.stopLossUpper = bbMiddle.iloc[-1] * (1.0 + self.stopLossPortion)
+					self.stopLossUpper = max(bbMiddle.iloc[-1], rates["High"].iloc[-1]) * (1.0 + self.stopLossPortion)
 					self.stopLossLower = 0.0
 
 			if self.stopLossUpper > 0.0:
-				if (bbMiddle.iloc[-1] * (1.0 + self.stopLossPortion)) < self.stopLossUpper:
-					self.stopLossUpper = bbMiddle.iloc[-1] * (1.0 + self.stopLossPortion)
+				if (max(bbMiddle.iloc[-1], rates["High"].iloc[-1]) * (1.0 + self.stopLossPortion)) < self.stopLossUpper:
+					self.stopLossUpper = max(bbMiddle.iloc[-1], rates["High"].iloc[-1]) * (1.0 + self.stopLossPortion)
 				if rates["High"].iloc[-1] > self.stopLossUpper:
 					send_msg("STOPLOSS BUY - {}".format(rates["Low"].iloc[-1]))
 					print(Fore.RED + "---StopLoss Buy at {}---".format(now) + Style.RESET_ALL)
 					buyLRC(99.0 / 100.0)
-					self.stopLossLower = bbMiddle.iloc[-1] * (1.0 - self.stopLossPortion)
+					self.stopLossLower = min(bbMiddle.iloc[-1], rates["Low"].iloc[-1]) * (1.0 - self.stopLossPortion)
 					self.stopLossUpper = 0.0
 			
 			print(Fore.YELLOW +
@@ -195,7 +195,7 @@ class Bot(BoxLayout):
 										if (ratesRsi[i] <= thisRsiUpperBound) and (ratesHigh[i] <= bbUpper[i]):
 											usdEnd = usdEnd + (cryptoEnd * ratesHl2[i] * .995 * portion)
 											cryptoEnd = cryptoEnd * (1.0 - portion)
-											stopLossUpper = bbMiddle[i] * (1.0 + stopLossPortion)
+											stopLossUpper = max(bbMiddle[i], ratesHigh[-1]) * (1.0 + stopLossPortion)
 											stopLossLower = 0.0
 											thisInSellPeriod = False
 
@@ -206,26 +206,26 @@ class Bot(BoxLayout):
 										if (ratesRsi[i] >= thisRsiLowerBound) and (ratesLow[i] >= bbLower[i]):
 											cryptoEnd = cryptoEnd + (usdEnd * .995 * portion / ratesHl2[i])
 											usdEnd = usdEnd * (1.0 - portion)
-											stopLossLower = bbMiddle[i] * (1.0 - stopLossPortion)
+											stopLossLower = min(bbMiddle[i], ratesLow[-1]) * (1.0 - stopLossPortion)
 											stopLossUpper = 0.0
 											thisInBuyPeriod = False
 
 									if stopLossLower > 0.0:
-										if (bbMiddle[i] * (1.0 - stopLossPortion)) > stopLossLower:
-											stopLossLower = bbMiddle[i] * (1.0 - stopLossPortion)
+										if (max(bbMiddle[i], ratesHigh[-1]) * (1.0 - stopLossPortion)) > stopLossLower:
+											stopLossLower = max(bbMiddle[i], ratesHigh[-1]) * (1.0 - stopLossPortion)
 										if ratesLow[i] < stopLossLower:
 											usdEnd = usdEnd + (cryptoEnd * ratesHl2[i] * .995 * portion)
 											cryptoEnd = cryptoEnd * (1.0 - portion)
-											stopLossUpper = bbMiddle[i] * (1.0 + stopLossPortion)
+											stopLossUpper = max(bbMiddle[i], ratesHigh[-1]) * (1.0 + stopLossPortion)
 											stopLossLower = 0.0
 
 									if stopLossUpper > 0.0:
-										if (bbMiddle[i] * (1.0 + stopLossPortion)) < stopLossUpper:
-											stopLossUpper = bbMiddle[i] * (1.0 + stopLossPortion)
+										if (min(bbMiddle[i], ratesLow[-1]) * (1.0 + stopLossPortion)) < stopLossUpper:
+											stopLossUpper = min(bbMiddle[i], ratesLow[-1]) * (1.0 + stopLossPortion)
 										if ratesHigh[i] > stopLossUpper:
 											cryptoEnd = cryptoEnd + (usdEnd * .995 * portion / ratesHl2[i])
 											usdEnd = usdEnd * (1.0 - portion)
-											stopLossLower = bbMiddle[i] * (1.0 - stopLossPortion)
+											stopLossLower = min(bbMiddle[i], ratesLow[-1]) * (1.0 - stopLossPortion)
 											stopLossUpper = 0.0
 
 								walletStart = 200.0
@@ -342,7 +342,6 @@ class Bot(BoxLayout):
 	def add_rsi_plot(self, ratesHl2):
 		size = 150
 		rsi = get_rsi(ratesHl2, self.rsiPeriodLength)
-		#plt = plot_rsi(rsi, self.rsiUpperBound, self.rsiLowerBound)
 		ax2.plot(rsi.tail(size), label="RSI", c="r")
 		ax2.axhline(y=self.rsiUpperBound, color='r', linestyle='--')
 		ax2.axhline(y=self.rsiLowerBound, color='r', linestyle='--')
