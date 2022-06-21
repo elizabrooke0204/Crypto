@@ -211,8 +211,8 @@ class Bot(BoxLayout):
 											thisInBuyPeriod = False
 
 									if stopLossLower > 0.0:
-										if (max(bbMiddle[i], ratesHigh[-1]) * (1.0 - stopLossPortion)) > stopLossLower:
-											stopLossLower = max(bbMiddle[i], ratesHigh[-1]) * (1.0 - stopLossPortion)
+										if (min(bbMiddle[i], ratesLow[-1]) * (1.0 - stopLossPortion)) > stopLossLower:
+											stopLossLower = min(bbMiddle[i], ratesLow[-1]) * (1.0 - stopLossPortion)
 										if ratesLow[i] < stopLossLower:
 											usdEnd = usdEnd + (cryptoEnd * ratesHl2[i] * .995 * portion)
 											cryptoEnd = cryptoEnd * (1.0 - portion)
@@ -220,8 +220,8 @@ class Bot(BoxLayout):
 											stopLossLower = 0.0
 
 									if stopLossUpper > 0.0:
-										if (min(bbMiddle[i], ratesLow[-1]) * (1.0 + stopLossPortion)) < stopLossUpper:
-											stopLossUpper = min(bbMiddle[i], ratesLow[-1]) * (1.0 + stopLossPortion)
+										if (max(bbMiddle[i], ratesHigh[-1]) * (1.0 + stopLossPortion)) < stopLossUpper:
+											stopLossUpper = max(bbMiddle[i], ratesHigh[-1]) * (1.0 + stopLossPortion)
 										if ratesHigh[i] > stopLossUpper:
 											cryptoEnd = cryptoEnd + (usdEnd * .995 * portion / ratesHl2[i])
 											usdEnd = usdEnd * (1.0 - portion)
