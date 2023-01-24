@@ -37,7 +37,7 @@ Window.size = (1000, 700)
 
 # global variables initial parameters
 symbol = "LRC"
-timeSlice = "15min"
+timeSlice = 1
 outputSize = "full"
 
 
@@ -324,7 +324,7 @@ class Bot(BoxLayout):
 
 	# Adds new data to plt
 	def add_plot(self, ratesHl2):
-		size = 150
+		size = 50
 		(bbUpper, bbMiddle, bbLower) = get_bb(ratesHl2, self.bbPeriodLength, self.bbLevel)
 		ax1.plot(bbUpper.tail(size), label="Bollinger Up", c="b")
 		ax1.plot(bbMiddle.tail(size), label="Bollinger Middle", c="black")
@@ -340,7 +340,7 @@ class Bot(BoxLayout):
 		ax1.grid()
 
 	def add_rsi_plot(self, ratesHl2):
-		size = 150
+		size = 50
 		rsi = get_rsi(ratesHl2, self.rsiPeriodLength)
 		ax2.plot(rsi.tail(size), label="RSI", c="r")
 		ax2.axhline(y=self.rsiUpperBound, color='r', linestyle='--')
@@ -371,32 +371,21 @@ class MainApp(MDApp):
 		self.root.update_variables(rates.tail(500))
 
 	def update_screen(self):
-		if time.strftime("%S") != "00":
-			minutes = 4 - (int(time.strftime("%-M")) % 5)
-			seconds = 60 - (int(time.strftime("%-S")))
-			if seconds < 10:
-				self.root.counter = str(minutes) + ":0" + str(seconds)
-			else:
-				self.root.counter = str(minutes) + ":" + str(seconds)
+			try:
+				rates = get_historic_rates(symbol, timeSlice, outputSize)
+				self.root.run_strategy_rsi_bb(rates)
+				self.root.update_variables(rates)
 
-		# STATEGY THREAD
-		else:
-			self.root.counter = str(5 - (int(time.strftime("%-M")) % 5)) + ":00"
-			if float(time.strftime("%-M")) % 5 == 0:
-				try:
-					rates = get_historic_rates(symbol, timeSlice, outputSize)
-					self.root.run_strategy_rsi_bb(rates.tail(500))
-					self.root.update_variables(rates.tail(500))
-
-					# ANALYZE THREAD
-					if time.strftime("%M") == "00":
+				# ANALYZE THREAD
+				if time.strftime("%S") == "00":
+					if time.strftime("%M") == "00" or time.strftime("%M") == "30":
 						analyzeThread = threading.Thread(target=self.root.analyze_rsi_bb, args=(rates.tail(250),), daemon=True)
 						analyzeThread.start()
 
-				except Exception as err:
-					send_msg("UPDATE-SCREEN-ERROR\nCheck to see if bot is functioning")
-					print(Fore.RED + "UPDATE-SCREEN-ERROR." + Style.RESET_ALL)
-					print(err)
+			except Exception as err:
+				send_msg("UPDATE-SCREEN-ERROR\nCheck to see if bot is functioning")
+				print(Fore.RED + "UPDATE-SCREEN-ERROR." + Style.RESET_ALL)
+				print(err)
 
 
 if __name__ == "__main__":

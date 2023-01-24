@@ -171,19 +171,18 @@ def get_bb(rates, periodLength, standardDevLevel):
 # -------------------------------- get historic rates ----------------------------------
 
 def get_historic_rates(symbol, timeSlice, outputSize):
+	granularity = timeSlice * 60
 	conn = http.client.HTTPSConnection("api.exchange.coinbase.com")
 	payload = ""
 	headers = {"User-Agent": "LS", "Content-Type": "application/json"}
-	conn.request("GET", "/products/" + symbol + "-USD/candles?granularity=60", payload, headers)
+	conn.request("GET", "/products/" + symbol + "-USD/candles?granularity=" + str(granularity), payload, headers)
 	res = conn.getresponse()
 	data = res.read().decode("utf-8")
 	rates = json.loads(data)
 	rates = pd.DataFrame(rates).set_axis(["Date", "Open", "High", "Low", "Close", "Volume"], axis="columns")
 	rates = rates.iloc[::-1]
 	rates["Date"] = pd.to_datetime(rates["Date"], unit="s").dt.strftime("%m-%d %H:%M")
-	print(type(rates["Open"].iloc[0]))
 	rates = rates.set_index("Date")
-	print(rates)
 	return rates
 
 
