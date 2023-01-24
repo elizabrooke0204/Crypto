@@ -4,6 +4,8 @@
 import time
 import requests
 import cbpro
+import json
+import http.client
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
@@ -168,36 +170,20 @@ def get_bb(rates, periodLength, standardDevLevel):
 
 # -------------------------------- get historic rates ----------------------------------
 
-def get_historic_rates(symbol, timeSlice, output_size):
-	compactOrFull = "full"
-	url = ("https://www.alphavantage.co/query?function=CRYPTO_INTRADAY&symbol=" + symbol
-		+ "&market=USD&interval=" + timeSlice
-		+ "&outputsize=" + output_size
-		+ "&apikey=" + alpha_api_key)
-	#pd.set_option("display.max_rows", None, "display.max_colwidth", None)
-
-	# Reads in data, parse into json format, save only time series data eliminating meta data
-	rates = requests.get(url)
-	rates = rates.json()
-	rates = rates["Time Series Crypto (" + timeSlice + ")"]
-
-	# Change from json to pandas data frame, transpose data row and columns
-	rates = pd.DataFrame(rates)
-	rates = rates.transpose()
-
-	# Set index and row names, sort data from latest to most recent rates
-	rates.index.name="Date"
-	rates.index = rates.index.str[5:-3]
-	rates.columns = ["Open","High","Low","Close","Volume"]
-	rates.sort_values(by="Date", ascending=True, inplace=True)
-
-	# Changes data from strings to floats
-	rates["Open"] = pd.to_numeric(rates["Open"], downcast="float")
-	rates["High"] = pd.to_numeric(rates["High"], downcast="float")
-	rates["Low"] = pd.to_numeric(rates["Low"], downcast="float")
-	rates["Close"] = pd.to_numeric(rates["Close"], downcast="float")
-	rates["Volume"] = pd.to_numeric(rates["Volume"], downcast="float")
-
+def get_historic_rates(symbol, timeSlice, outputSize):
+	conn = http.client.HTTPSConnection("api.exchange.coinbase.com")
+	payload = ""
+	headers = {"User-Agent": "LS", "Content-Type": "application/json"}
+	conn.request("GET", "/products/" + symbol + "-USD/candles?granularity=60", payload, headers)
+	res = conn.getresponse()
+	data = res.read().decode("utf-8")
+	rates = json.loads(data)
+	rates = pd.DataFrame(rates).set_axis(["Date", "Open", "High", "Low", "Close", "Volume"], axis="columns")
+	rates = rates.iloc[::-1]
+	rates["Date"] = pd.to_datetime(rates["Date"], unit="s").dt.strftime("%m-%d %H:%M")
+	print(type(rates["Open"].iloc[0]))
+	rates = rates.set_index("Date")
+	print(rates)
 	return rates
 
 
