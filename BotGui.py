@@ -18,8 +18,11 @@ import requests
 import threading
 import cbpro
 import pandas as pd
-from datetime import datetime, timedelta
-from colorama import Fore, Back, Style
+from datetime import datetime
+from datetime import timedelta
+from colorama import Fore
+from colorama import Back
+from colorama import Style
 import matplotlib.pyplot as plt
 
 # File imports
@@ -43,14 +46,15 @@ outputSize = "full"
 
 class Bot(BoxLayout):
 	# sets properties with initial values
-	counter = StringProperty("")
-	rsiPeriodLength = NumericProperty(10)
-	rsiUpperBound = NumericProperty(70.0)
-	rsiLowerBound = NumericProperty(30.0)
-	bbPeriodLength = NumericProperty(10)
-	bbLevel = NumericProperty(2.5)
+	analyzeMin = StringProperty("00")
 	inSellPeriod = BooleanProperty(False)
 	inBuyPeriod = BooleanProperty(False)
+
+	rsiPeriodLength = NumericProperty(7)
+	rsiUpperBound = NumericProperty(72.0)
+	rsiLowerBound = NumericProperty(12.0)
+	bbPeriodLength = NumericProperty(23)
+	bbLevel = NumericProperty(2.25)
 
 	stopLossUpper = 0.0
 	stopLossLower = 0.0
@@ -121,12 +125,12 @@ class Bot(BoxLayout):
 					self.stopLossLower = min(bbMiddle.iloc[-1], rates["Low"].iloc[-1]) * (1.0 - self.stopLossPortion)
 					self.stopLossUpper = 0.0
 			
-			print(Fore.YELLOW +
-				"{} - InSellPeriod: {} InBuyPeriod: {}".format(now.strftime("%m/%d - %H:%M:%S"),self.inSellPeriod, self.inBuyPeriod) +
-				Style.RESET_ALL)
-			print("   RSI: {:.3f}, Upper: {}, Lower: {}".format(ratesRsi.iloc[-1], self.rsiUpperBound, self.rsiLowerBound))
-			print("   bbUpper: {:.3f} - High: {:.3f} | Low: {:.3f} - bbLower: {:.3f}".format(bbUpper.iloc[-1], rates["High"].iloc[-1], rates["Low"].iloc[-1], bbLower.iloc[-1]))
-			print("   self.stopLossUpper: {:.3f} | self.stopLossLower: {:.3f}".format(self.stopLossUpper, self.stopLossLower))
+			#print(Fore.YELLOW +
+			#	"{} - InSellPeriod: {} InBuyPeriod: {}".format(now.strftime("%m/%d - %H:%M:%S"),self.inSellPeriod, self.inBuyPeriod) +
+			#	Style.RESET_ALL)
+			#print("   RSI: {:.3f}, Upper: {}, Lower: {}".format(ratesRsi.iloc[-1], self.rsiUpperBound, self.rsiLowerBound))
+			#print("   bbUpper: {:.3f} - High: {:.3f} | Low: {:.3f} - bbLower: {:.3f}".format(bbUpper.iloc[-1], rates["High"].iloc[-1], rates["Low"].iloc[-1], bbLower.iloc[-1]))
+			#print("   self.stopLossUpper: {:.3f} | self.stopLossLower: {:.3f}".format(self.stopLossUpper, self.stopLossLower))
 
 		# Catches error in Strategy thread and prints to screen
 		except Exception as err:
@@ -143,7 +147,7 @@ class Bot(BoxLayout):
 			print("Analyzing data")
 			# Variable holders
 			bestDelta = 0.0
-			portion = 0.95
+			portion = 0.99
 
 			stopLossLower = 0.0
 			stopLossUpper = 0.0
@@ -261,6 +265,7 @@ class Bot(BoxLayout):
 				currentTopParameters = []
 
 			# Print top parameter combinations if found
+			print("{}".format(now.strftime("%m/%d - %H:%M:%S")))
 			if len(topParameters) > 0:
 				print("delta, rsiP, rsiU, rsiL, bbP, bbLvl, sellAcPer, BuyActPer")
 				topParameters.sort()
@@ -367,8 +372,12 @@ class MainApp(MDApp):
 
 	def on_start(self, **kwargs):
 		rates = get_historic_rates(symbol, timeSlice, outputSize)
-		self.root.run_strategy_rsi_bb(rates.tail(500))
-		self.root.update_variables(rates.tail(500))
+		if int(time.strftime("%M")) >= 30:
+			self.analyzeMin = "00"
+		else:
+			self.analyzeMin = "30"
+		self.root.run_strategy_rsi_bb(rates)
+		self.root.update_variables(rates)
 
 	def update_screen(self):
 			try:
@@ -377,10 +386,13 @@ class MainApp(MDApp):
 				self.root.update_variables(rates)
 
 				# ANALYZE THREAD
-				if time.strftime("%S") == "00":
-					if time.strftime("%M") == "00" or time.strftime("%M") == "30":
-						analyzeThread = threading.Thread(target=self.root.analyze_rsi_bb, args=(rates.tail(250),), daemon=True)
-						analyzeThread.start()
+				if time.strftime("%M") == self.analyzeMin:
+					analyzeThread = threading.Thread(target=self.root.analyze_rsi_bb, args=(rates.tail(250),), daemon=True)
+					analyzeThread.start()
+					if self.analyzeMin == "00":
+						self.analyzeMin = "30"
+					else:
+						self.analyzeMin = "00"
 
 			except Exception as err:
 				send_msg("UPDATE-SCREEN-ERROR\nCheck to see if bot is functioning")
