@@ -270,6 +270,47 @@ def buyLRC(portion):
 
 # ------------------------------- Get-available functions ---------------------------------
 
+def get_currency(symbol):
+	currencies = get_currencies()
+	try:
+		return currencies.loc[symbol].to_dict()
+	except Exception as err:
+		print("could not retrieve currency in wallet")
+
+
+def get_currencies():
+	try:
+		ts = str(int(time.time()))
+		path_url = "/api/v3/brokerage/accounts"
+		signature = generate_signature(ts, "GET", path_url)
+		conn = http.client.HTTPSConnection("api.coinbase.com")
+		payload = ''
+		headers = {
+			"User-Agent": "LS",
+			"CB-ACCESS-KEY": cb_api_key,
+			"CB-ACCESS-TIMESTAMP": ts,
+			"CB-ACCESS-SIGN": signature,
+			"Content-Type": "application/json"}
+
+		conn.request("GET", path_url, payload, headers)
+		res = conn.getresponse()
+		data = res.read().decode("utf-8")
+		accounts = pd.DataFrame(json.loads(data))
+		accounts = pd.json_normalize(accounts.accounts)
+		accounts = accounts.drop(columns=["active", "available_balance.currency", "created_at",
+			"deleted_at", "default", "hold.currency", "hold.value", "name", "ready", "type", "updated_at"])
+		accounts = accounts.rename(columns={"currency": "name", "available_balance.value": "balance"})
+		accounts = accounts.set_index("name")
+		return accounts
+	except Exception as err:
+		print("could not retrieve currencies in wallet")
+
+
+def generate_signature(ts, method, url):
+	message = ts + method + url
+	return hmac.new(cb_api_secret.encode('utf-8'), message.encode('utf-8'), hashlib.sha256).hexdigest()
+
+
 def get_orders():
 	orders = client.get_orders()
 	for order in orders:
