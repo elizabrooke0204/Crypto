@@ -377,7 +377,12 @@ class MainApp(MDApp):
 	def on_start(self, **kwargs):
 		rates = get_historic_rates(symbol, timeSlice)
 		#set next analyze time
-		self.analyzeTime = time.strftime("%H")
+		if timeSlice <= 5:
+			self.analyzeTime = ((int(time.strftime("%-M")) // 20) * 20) + 20
+			if self.analyzeTime == 60:
+				self.analyzeTime = self.analyzeTime - 60
+		else:
+			self.analyzeTime = time.strftime("%H")
 		self.root.run_strategy_rsi_bb(rates)
 		self.root.update_variables(rates)
 
@@ -388,14 +393,24 @@ class MainApp(MDApp):
 				self.root.update_variables(rates)
 
 				# ANALYZE THREAD
-				if time.strftime("%H") != self.analyzeTime:
-					self.analyzeTime = time.strftime("%H")
-					analyzeThread = threading.Thread(target=self.root.analyze_rsi_bb, args=(rates), daemon=True)
-					analyzeThread.start()
+				if timeSlice <=5:
+					if int(time.strftime("%-M")) == self.analyzeTime:
+						self.analyzeTime += 20
+						if self.analyzeTime >= 60:
+							self.analyzeTime = self.analyzeTime - 60
+						analyzeThread = threading.Thread(target=self.root.analyze_rsi_bb, args=(rates,), daemon=True)
+						analyzeThread.start()
+
+				else:	
+					if time.strftime("%H") != self.analyzeTime:
+						self.analyzeTime = time.strftime("%H")
+						analyzeThread = threading.Thread(target=self.root.analyze_rsi_bb, args=(rates,), daemon=True)
+						analyzeThread.start()
 
 			except Exception as err:
 				send_msg("UPDATE-SCREEN-ERROR\nCheck to see if bot is functioning")
-				print(Fore.RED + "UPDATE-SCREEN-ERROR." + Style.RESET_ALL + "\n" + err)
+				print(Fore.RED + "UPDATE-SCREEN-ERROR." + Style.RESET_ALL + "\n")
+				print(err)
 
 
 if __name__ == "__main__":
