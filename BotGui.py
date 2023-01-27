@@ -40,7 +40,7 @@ Window.size = (1000, 700)
 
 # global variables initial parameters
 symbol = "LRC"
-timeSlice = 1
+timeSlice = 15
 outputSize = "full"
 
 
@@ -88,7 +88,8 @@ class Bot(BoxLayout):
 					print(Fore.GREEN + "---Sell at {}---".format(now) + Style.RESET_ALL)
 					sellLRC(99.0/100.0)
 					self.inSellPeriod = False
-					self.stopLossUpper = max(bbMiddle.iloc[-1], rates["High"].iloc[-1]) * (1.0 + self.stopLossPortion)
+					if self.stopLossUpper == 0.0:
+						self.stopLossUpper = max(bbMiddle.iloc[-1], rates["High"].iloc[-1]) * (1.0 + self.stopLossPortion)
 					self.stopLossLower = 0.0
 					
 			if not self.inBuyPeriod:
@@ -265,7 +266,7 @@ class Bot(BoxLayout):
 				currentTopParameters = []
 
 			# Print top parameter combinations if found
-			print("{}".format(now.strftime("%m/%d - %H:%M:%S")))
+			print("{}".format(datetime.now().strftime("%m/%d - %H:%M:%S")))
 			if len(topParameters) > 0:
 				print("delta, rsiP, rsiU, rsiL, bbP, bbLvl, sellAcPer, BuyActPer")
 				topParameters.sort()
@@ -372,6 +373,7 @@ class MainApp(MDApp):
 
 	def on_start(self, **kwargs):
 		rates = get_historic_rates(symbol, timeSlice, outputSize)
+		#set next analyze time
 		if int(time.strftime("%M")) >= 30:
 			self.analyzeMin = "00"
 		else:

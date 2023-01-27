@@ -37,8 +37,8 @@ def analyze_rsi_bb(symbol, timeSliceList, outputSize, portion, stopLossPortion):
 		rates = get_historic_rates(symbol, timeSlice, outputSize).tail(500)
 		ratesHl2Series = pd.Series((rates["High"] + rates["Low"]).div(2).values, index=rates.index)
 
-		timeSlicePerDay = float(timeSlice[:len(timeSlice) - 3])
-		timeSlicePerDay = timeSlicePerDay * 200 / (60 * 24)
+		#timeSlicePerDay = float(timeSlice[:len(timeSlice) - 3])
+		timeSlicePerDay = timeSlice * 200 / (60 * 24)
 		
 		for rsiPeriodLength in range(2, 14):
 			print(rsiPeriodLength)
@@ -126,7 +126,7 @@ def analyze_rsi_bb(symbol, timeSliceList, outputSize, portion, stopLossPortion):
 
 							if (delta >= bestDelta):
 								bestDelta = delta
-								deltaPerDay = delta / timeSlicePerDay
+								#deltaPerDay = delta / timeSlicePerDay
 								currentTopParameters.append([actionGainLoss, delta, timeSlice, rsiPeriodLength, rsiUpperBound, rsiLowerBound, bbPeriodLength, bbLevel])
 
 							inSellPeriod = False
@@ -144,7 +144,7 @@ def analyze_rsi_bb(symbol, timeSliceList, outputSize, portion, stopLossPortion):
 			currentTopParameters = []
 
 	topParameters.sort()
-	print(symbol)
+	print(symbol + " SL-portion: " + stopLossPortion)
 	print("actionGainLoss, delta, timeSlice, rsiP, rsiU, rsiL, bbP, bbLvl")
 	for parameters in topParameters:
 		print(parameters)
@@ -229,7 +229,7 @@ def test_rsi_bb_parameters(symbol, timeSlice, outputSize, rsiPeriodLength, rsiUp
 
 	stopLossLower = 0.0
 	stopLossUpper = 0.0
-	stopLossPortion = 0.0245
+	stopLossPortion = 0.026
 
 	# Parse through data and determine buy or sell times and prices
 	print("from:" + dates[0])
@@ -242,7 +242,8 @@ def test_rsi_bb_parameters(symbol, timeSlice, outputSize, rsiPeriodLength, rsiUp
 			if (ratesRsi[i] <= rsiUpperBound) and (ratesHigh[i] <= bbUpper[i]):
 				usdEnd = usdEnd + (cryptoEnd * ratesHl2[i] * .995 * portion)
 				cryptoEnd = cryptoEnd * (1.0 - portion)
-				stopLossUpper = bbMiddle[i] * (1.0 + stopLossPortion)
+				if stopLossUpper == 0.0:
+					stopLossUpper = bbMiddle[i] * (1.0 + stopLossPortion)
 				stopLossLower = 0.0
 				print("SELL on {} at: {:.6f}".format(dates[i], ratesHl2[i]))
 				print("   USD= {:.3f} | {}= {:.3f}".format(usdEnd, symbol, cryptoEnd))
@@ -255,7 +256,8 @@ def test_rsi_bb_parameters(symbol, timeSlice, outputSize, rsiPeriodLength, rsiUp
 			if (ratesRsi[i] >= rsiLowerBound) and (ratesLow[i] >= bbLower[i]):
 				cryptoEnd = cryptoEnd + (usdEnd * .995 * portion / ratesHl2[i])
 				usdEnd = usdEnd * (1.0 - portion)
-				stopLossLower = bbMiddle[i] * (1.0 - stopLossPortion)
+				if stopLossLower == 0.0:
+					stopLossLower = bbMiddle[i] * (1.0 - stopLossPortion)
 				stopLossUpper = 0.0
 				print("BUY on {} at: {:.6f}".format(dates[i], ratesHl2[i]))
 				print("   USD= {:.3f} | {}= {:.3f}".format(usdEnd, symbol, cryptoEnd))
@@ -302,10 +304,10 @@ def test_rsi_bb_parameters(symbol, timeSlice, outputSize, rsiPeriodLength, rsiUp
 def multiprocess_rsi_bb(symbol, outputSize):
 	portion = 0.99
 	stopLossPortion = 0.0235
-	t1 = multiprocessing.Process(target=analyze_rsi_bb, args=(symbol, ["15min"], outputSize, portion, 0.0205))
-	t2 = multiprocessing.Process(target=analyze_rsi_bb, args=(symbol, ["15min"], outputSize, portion, 0.0215))
-	t3 = multiprocessing.Process(target=analyze_rsi_bb, args=(symbol, ["15min"], outputSize, portion, 0.0235))
-	t4 = multiprocessing.Process(target=analyze_rsi_bb, args=(symbol, ["15min"], outputSize, portion, 0.0245))
+	t1 = multiprocessing.Process(target=analyze_rsi_bb, args=(symbol, [15], outputSize, portion, 0.014))
+	t2 = multiprocessing.Process(target=analyze_rsi_bb, args=(symbol, [15], outputSize, portion, 0.018))
+	t3 = multiprocessing.Process(target=analyze_rsi_bb, args=(symbol, [15], outputSize, portion, 0.022))
+	t4 = multiprocessing.Process(target=analyze_rsi_bb, args=(symbol, [15], outputSize, portion, 0.026))
 
 	t1.start()
 	t2.start()
@@ -338,8 +340,8 @@ def multiprocess_test_all():
 
 
 if __name__ == "__main__":
-	analyze_rsi_bb("LRC", ["15min"], "full", 0.99, 0.0235)
-	#test_rsi_bb_parameters("LRC", "15min", "full", 3, 80, 20, 5, 3.0)
+	#analyze_rsi_bb("LRC", ["15min"], "full", 0.99, 0.0235)
+	test_rsi_bb_parameters("LRC", 15, "full", 3, 70, 34, 11, 2.75)
 	#multiprocess_rsi_bb("LRC", "full")
 
 	#multiprocess_test_all()
