@@ -22,7 +22,7 @@ client = cbpro.AuthenticatedClient(api_key, api_secret, api_pass, api_url=url)
 # ------------------------------------ Analyze RSI BB -------------------------------------
 
 # Analyze crpyto for current most accurate parameter combination
-def analyze_rsi_bb(symbol, timeSliceList, outputSize, portion, stopLossPortion):
+def analyze_rsi_bb(symbol, timeSliceList, portion, stopLossPortion):
 	# Variable holders
 	inSellPeriod = False
 	inBuyPeriod = False
@@ -34,7 +34,7 @@ def analyze_rsi_bb(symbol, timeSliceList, outputSize, portion, stopLossPortion):
 	topParameters = []
 
 	for timeSlice in timeSliceList:
-		rates = get_historic_rates(symbol, timeSlice, outputSize).tail(500)
+		rates = get_historic_rates(symbol, timeSlice)
 		ratesHl2Series = pd.Series((rates["High"] + rates["Low"]).div(2).values, index=rates.index)
 
 		#timeSlicePerDay = float(timeSlice[:len(timeSlice) - 3])
@@ -151,8 +151,8 @@ def analyze_rsi_bb(symbol, timeSliceList, outputSize, portion, stopLossPortion):
 
 
 def get_price_differences(symbol):
-	rates5min = get_historic_rates(symbol, "5min", "full")
-	rates60min = get_historic_rates(symbol, "60min", "full")
+	rates5min = get_historic_rates(symbol, "5min")
+	rates60min = get_historic_rates(symbol, "60min")
 
 	series5minHl2 = pd.Series((rates5min["High"] + rates5min["Low"]).div(2).values, index=rates5min.index)
 	series60minHl2 = pd.Series((rates60min["High"] + rates60min["Low"]).div(2).values, index=rates60min.index)
@@ -195,7 +195,7 @@ def get_delta(priceNow, priceOld):
 # ------------------------------------- Test RSI BB ---------------------------------------
 
 # Test specific most efficient parameters deteremined by analyze_rsi_bb()
-def test_rsi_bb_parameters(symbol, timeSlice, outputSize, rsiPeriodLength, rsiUpperBound, rsiLowerBound, bbPeriodLength, bbLevel):
+def test_rsi_bb_parameters(symbol, timeSlice, rsiPeriodLength, rsiUpperBound, rsiLowerBound, bbPeriodLength, bbLevel):
 	# Variable holders
 	rsiSignals = []
 	bbSignals = []
@@ -204,7 +204,7 @@ def test_rsi_bb_parameters(symbol, timeSlice, outputSize, rsiPeriodLength, rsiUp
 	inBuyPeriod = False
 
 	# Get rates, high/low average, rsi values and bb bands
-	rates = get_historic_rates(symbol, timeSlice, outputSize).tail(250)
+	rates = get_historic_rates(symbol, timeSlice)
 	ratesHl2 = pd.Series((rates["High"] + rates["Low"]).div(2).values, index=rates.index)
 
 	ratesRsi = get_rsi(ratesHl2, rsiPeriodLength)
@@ -301,13 +301,13 @@ def test_rsi_bb_parameters(symbol, timeSlice, outputSize, rsiPeriodLength, rsiUp
 
 # ----------------------------- Multiprocess-Analyze RSI BB -------------------------------
 
-def multiprocess_rsi_bb(symbol, outputSize):
+def multiprocess_rsi_bb(symbol):
 	portion = 0.99
 	stopLossPortion = 0.0235
-	t1 = multiprocessing.Process(target=analyze_rsi_bb, args=(symbol, [15], outputSize, portion, 0.014))
-	t2 = multiprocessing.Process(target=analyze_rsi_bb, args=(symbol, [15], outputSize, portion, 0.018))
-	t3 = multiprocessing.Process(target=analyze_rsi_bb, args=(symbol, [15], outputSize, portion, 0.022))
-	t4 = multiprocessing.Process(target=analyze_rsi_bb, args=(symbol, [15], outputSize, portion, 0.026))
+	t1 = multiprocessing.Process(target=analyze_rsi_bb, args=(symbol, [15], portion, 0.014))
+	t2 = multiprocessing.Process(target=analyze_rsi_bb, args=(symbol, [15], portion, 0.018))
+	t3 = multiprocessing.Process(target=analyze_rsi_bb, args=(symbol, [15], portion, 0.022))
+	t4 = multiprocessing.Process(target=analyze_rsi_bb, args=(symbol, [15], portion, 0.026))
 
 	t1.start()
 	t2.start()
@@ -323,14 +323,13 @@ def multiprocess_rsi_bb(symbol, outputSize):
 def test_all():
 	for sym in symList:
 		print(sym)
-		analyze_rsi_bb(sym, ["15min"], "compact", 0.99)
+		analyze_rsi_bb(sym, ["15min"], 0.99)
 
 def multiprocess_test_all():
 
 	for i in range(0, 56, 2):
-		outputSize = "compact"
-		t1 = multiprocessing.Process(target=analyze_rsi_bb, args=(symList[i], ["15min"], outputSize, 0.99))
-		t2 = multiprocessing.Process(target=analyze_rsi_bb, args=(symList[i + 1], ["15min"], outputSize, 0.99))
+		t1 = multiprocessing.Process(target=analyze_rsi_bb, args=(symList[i], ["15min"], 0.99))
+		t2 = multiprocessing.Process(target=analyze_rsi_bb, args=(symList[i + 1], ["15min"], 0.99))
 		
 		t1.start()
 		t2.start()
@@ -340,9 +339,9 @@ def multiprocess_test_all():
 
 
 if __name__ == "__main__":
-	#analyze_rsi_bb("LRC", ["15min"], "full", 0.99, 0.0235)
-	test_rsi_bb_parameters("LRC", 15, "full", 3, 70, 34, 11, 2.75)
-	#multiprocess_rsi_bb("LRC", "full")
+	#analyze_rsi_bb("LRC", ["15min"], 0.99, 0.0235)
+	test_rsi_bb_parameters("LRC", 15, 3, 70, 34, 11, 2.75)
+	#multiprocess_rsi_bb("LRC")
 
 	#multiprocess_test_all()
 	#print(get_price_differences("LINK"))

@@ -10,7 +10,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 from datetime import datetime, timedelta
-from auth_cred import (api_secret, api_key, api_pass, alpha_api_key)
+from auth_cred import (api_secret, api_key, api_pass)
 
 # Set url and authticate client
 url = "https://api.pro.coinbase.com"
@@ -170,7 +170,7 @@ def get_bb(rates, periodLength, standardDevLevel):
 
 # -------------------------------- get historic rates ----------------------------------
 
-def get_historic_rates(symbol, timeSlice, outputSize):
+def get_historic_rates(symbol, timeSlice):
 	granularity = timeSlice * 60
 	conn = http.client.HTTPSConnection("api.exchange.coinbase.com")
 	payload = ""

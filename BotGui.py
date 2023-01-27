@@ -41,12 +41,11 @@ Window.size = (1000, 700)
 # global variables initial parameters
 symbol = "LRC"
 timeSlice = 15
-outputSize = "full"
 
 
 class Bot(BoxLayout):
 	# sets properties with initial values
-	analyzeMin = StringProperty("00")
+	analyzeTime = StringProperty("00")
 	inSellPeriod = BooleanProperty(False)
 	inBuyPeriod = BooleanProperty(False)
 
@@ -103,7 +102,8 @@ class Bot(BoxLayout):
 					print(Fore.GREEN + "---Buy at {}---".format(now) + Style.RESET_ALL)
 					buyLRC(99.0/100.0)
 					self.inBuyPeriod = False
-					self.stopLossLower = min(bbMiddle.iloc[-1], rates["Low"].iloc[-1]) * (1.0 - self.stopLossPortion)
+					if self.stopLossLower == 0.0:
+						self.stopLossLower = min(bbMiddle.iloc[-1], rates["Low"].iloc[-1]) * (1.0 - self.stopLossPortion)
 					self.stopLossUpper = 0.0
 
 			if self.stopLossLower > 0.0:
@@ -372,29 +372,23 @@ class MainApp(MDApp):
 		return Bot()
 
 	def on_start(self, **kwargs):
-		rates = get_historic_rates(symbol, timeSlice, outputSize)
+		rates = get_historic_rates(symbol, timeSlice)
 		#set next analyze time
-		if int(time.strftime("%M")) >= 30:
-			self.analyzeMin = "00"
-		else:
-			self.analyzeMin = "30"
+		self.analyzeTime = time.strftime("%H")
 		self.root.run_strategy_rsi_bb(rates)
 		self.root.update_variables(rates)
 
 	def update_screen(self):
 			try:
-				rates = get_historic_rates(symbol, timeSlice, outputSize)
+				rates = get_historic_rates(symbol, timeSlice)
 				self.root.run_strategy_rsi_bb(rates)
 				self.root.update_variables(rates)
 
 				# ANALYZE THREAD
-				if time.strftime("%M") == self.analyzeMin:
-					analyzeThread = threading.Thread(target=self.root.analyze_rsi_bb, args=(rates.tail(250),), daemon=True)
+				if time.strftime("%H") != self.analyzeTime:
+					self.analyzeTime = time,strftime("%H")
+					analyzeThread = threading.Thread(target=self.root.analyze_rsi_bb, args=(rates,), daemon=True)
 					analyzeThread.start()
-					if self.analyzeMin == "00":
-						self.analyzeMin = "30"
-					else:
-						self.analyzeMin = "00"
 
 			except Exception as err:
 				send_msg("UPDATE-SCREEN-ERROR\nCheck to see if bot is functioning")
