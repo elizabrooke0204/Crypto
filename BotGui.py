@@ -41,7 +41,7 @@ Window.size = (1000, 700)
 # global variables initial parameters
 symbol = "MAGIC"
 timeSlice = 1
-stoplossPortion = 0.025
+stopLossPortion = 0.025
 
 
 class Bot(BoxLayout):
@@ -83,12 +83,13 @@ class Bot(BoxLayout):
 					self.inSellPeriod = True
 			else:
 				if (ratesRsi.iloc[-1] <= self.rsiUpperBound) and (rates["High"].iloc[-1] <= bbUpper.iloc[-1]):
-					send_msg("SELL - {}".format(rates["Low"].iloc[-1]))
-					print(Fore.GREEN + "---Sell at {}---".format(now) + Style.RESET_ALL)
-					sellLRC(99.0/100.0)
-					self.inSellPeriod = False
 					if self.stopLossUpper == 0.0:
+						send_msg("SELL - {}".format(rates["Low"].iloc[-1]))
+						print(Fore.GREEN + "---Sell at {}---".format(now) + Style.RESET_ALL)
+						sellLRC(99.0/100.0)
+						self.inSellPeriod = False
 						self.stopLossUpper = max(bbMiddle.iloc[-1], rates["High"].iloc[-1]) * (1.0 + stopLossPortion)
+					else:
 						print(Fore.RED + "***double-sell***" + Style.RESET_ALL)
 					self.stopLossLower = 0.0
 					
@@ -99,12 +100,13 @@ class Bot(BoxLayout):
 					self.inBuyPeriod = True
 			else:
 				if (ratesRsi.iloc[-1] >= self.rsiLowerBound) and (rates["Low"].iloc[-1] >= bbLower.iloc[-1]):
-					send_msg("BUY - {}".format(rates["High"].iloc[-1]))
-					print(Fore.GREEN + "---Buy at {}---".format(now) + Style.RESET_ALL)
-					buyLRC(99.0/100.0)
-					self.inBuyPeriod = False
 					if self.stopLossLower == 0.0:
+						send_msg("BUY - {}".format(rates["High"].iloc[-1]))
+						print(Fore.GREEN + "---Buy at {}---".format(now) + Style.RESET_ALL)
+						buyLRC(99.0/100.0)
+						self.inBuyPeriod = False	
 						self.stopLossLower = min(bbMiddle.iloc[-1], rates["Low"].iloc[-1]) * (1.0 - stopLossPortion)
+					else:
 						print(Fore.RED + "***double-buy***" + Style.RESET_ALL)
 					self.stopLossUpper = 0.0
 
