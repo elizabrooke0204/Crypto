@@ -39,8 +39,8 @@ fig, (ax1, ax2) = plt.subplots(2)
 Window.size = (1000, 700)
 
 # global variables initial parameters
-symbol = "LRC"
-timeSlice = 15
+symbol = "MAGIC"
+timeSlice = 1
 stoplossPortion = 0.025
 
 
@@ -331,7 +331,7 @@ class Bot(BoxLayout):
 
 	# Adds new data to plt
 	def add_plot(self, ratesHl2):
-		size = 50
+		size = 150
 		(bbUpper, bbMiddle, bbLower) = get_bb(ratesHl2, self.bbPeriodLength, self.bbLevel)
 		ax1.plot(bbUpper.tail(size), label="Bollinger Up", c="b")
 		ax1.plot(bbMiddle.tail(size), label="Bollinger Middle", c="black")
@@ -347,7 +347,7 @@ class Bot(BoxLayout):
 		ax1.grid()
 
 	def add_rsi_plot(self, ratesHl2):
-		size = 50
+		size = 150
 		rsi = get_rsi(ratesHl2, self.rsiPeriodLength)
 		ax2.plot(rsi.tail(size), label="RSI", c="r")
 		ax2.axhline(y=self.rsiUpperBound, color='r', linestyle='--')
@@ -376,7 +376,6 @@ class MainApp(MDApp):
 		rates = get_historic_rates(symbol, timeSlice)
 		#set next analyze time
 		self.analyzeTime = time.strftime("%H")
-		print("AN-time set to:" + self.analyzeTime)
 		self.root.run_strategy_rsi_bb(rates)
 		self.root.update_variables(rates)
 
@@ -394,8 +393,7 @@ class MainApp(MDApp):
 
 			except Exception as err:
 				send_msg("UPDATE-SCREEN-ERROR\nCheck to see if bot is functioning")
-				print(Fore.RED + "UPDATE-SCREEN-ERROR." + Style.RESET_ALL)
-				print(err)
+				print(Fore.RED + "UPDATE-SCREEN-ERROR." + Style.RESET_ALL + "\n" + err)
 
 
 if __name__ == "__main__":
