@@ -179,7 +179,7 @@ def get_historic_rates(symbol, timeSlice):
 	res = conn.getresponse()
 	data = res.read().decode("utf-8")
 	rates = json.loads(data)
-	rates = pd.DataFrame(rates).set_axis(["Date", "Open", "High", "Low", "Close", "Volume"], axis="columns")
+	rates = pd.DataFrame(rates).set_axis(["Date", "Low", "High", "Open", "Close", "Volume"], axis="columns")
 	rates = rates.iloc[::-1]
 	rates["Date"] = pd.to_datetime(rates["Date"], unit="s").dt.strftime("%m-%d %H:%M")
 	rates = rates.set_index("Date")
