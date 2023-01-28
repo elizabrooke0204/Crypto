@@ -40,7 +40,7 @@ Window.size = (1000, 700)
 
 # global variables initial parameters
 symbol = "MAGIC"
-timeSlice = 1
+timeSlice = 5
 stopLossPortion = 0.025
 
 
@@ -51,9 +51,9 @@ class Bot(BoxLayout):
 	inBuyPeriod = BooleanProperty(False)
 
 	rsiPeriodLength = NumericProperty(7)
-	rsiUpperBound = NumericProperty(72.0)
-	rsiLowerBound = NumericProperty(12.0)
-	bbPeriodLength = NumericProperty(23)
+	rsiUpperBound = NumericProperty(70.0)
+	rsiLowerBound = NumericProperty(30.0)
+	bbPeriodLength = NumericProperty(10)
 	bbLevel = NumericProperty(2.25)
 
 	stopLossUpper = 0.0
@@ -326,19 +326,24 @@ class Bot(BoxLayout):
 		ax1.cla()
 		ax2.cla()
 		self.graphBox.clear_widgets()
-		Bot.add_plot(self, ratesHl2)
+		Bot.add_candles_bb_plot(self, ratesHl2, rates)
 		Bot.add_rsi_plot(self, ratesHl2)
 		self.graphBox.add_widget(FigureCanvasKivyAgg(plt.gcf()))
 
 
 	# Adds new data to plt
-	def add_plot(self, ratesHl2):
-		size = 150
+	def add_candles_bb_plot(self, ratesHl2, rates):
+		size = 150 - self.bbPeriodLength + 1
+		rates = rates.tail(size)
+		down = rates[rates.Close < rates.Open]
+		up = rates[rates.Close >= rates.Open]
+		widthOC = 0.8
+		widthHL = 0.2
+	
 		(bbUpper, bbMiddle, bbLower) = get_bb(ratesHl2, self.bbPeriodLength, self.bbLevel)
-		ax1.plot(bbUpper.tail(size), label="Bollinger Up", c="b")
-		ax1.plot(bbMiddle.tail(size), label="Bollinger Middle", c="black")
-		ax1.plot(bbLower.tail(size), label="Bollinger Down", c="b")
-		ax1.plot(ratesHl2.tail(size), label="Rates", c="g")
+		ax1.plot(bbUpper.tail(size), label="Bollinger Up", linewidth=1, c="b")
+		ax1.plot(bbMiddle.tail(size), label="Bollinger Middle", linewidth=1, c="black")
+		ax1.plot(bbLower.tail(size), label="Bollinger Down", linewidth=1, c="b")
 		ax1.set_xticks([0,
 			int(size / 5) - 1,
 			int(size * 2 / 5) - 1,
@@ -348,12 +353,27 @@ class Bot(BoxLayout):
 		ax1.tick_params(labelsize=5, labelrotation=0)
 		ax1.grid()
 
+		ax1.bar(up.index, up.Close - up.Open, widthOC, bottom=up.Open, color="green")
+		ax1.bar(up.index, up.High - up.Close, widthHL, bottom=up.Close, color="green")
+		ax1.bar(up.index, up.Low - up.Open, widthHL, bottom=up.Open, color="green")
+		ax1.bar(down.index, down.Close - down.Open, widthOC, bottom=down.Open, color="red")
+		ax1.bar(down.index, down.High - down.Open, widthHL, bottom=down.Open, color="red")
+		ax1.bar(down.index, down.Low - down.Close, widthHL, bottom=down.Close, color="red")
+
 	def add_rsi_plot(self, ratesHl2):
-		size = 150
+		size = 150 - self.bbPeriodLength + 1
 		rsi = get_rsi(ratesHl2, self.rsiPeriodLength)
-		ax2.plot(rsi.tail(size), label="RSI", c="r")
-		ax2.axhline(y=self.rsiUpperBound, color='r', linestyle='--')
-		ax2.axhline(y=self.rsiLowerBound, color='r', linestyle='--')
+		ax2.plot(rsi.tail(size), label="RSI", c="black", linewidth=1)
+		ax2.axhline(y=self.rsiUpperBound, color='black', linestyle='--', linewidth=2)
+		ax2.axhline(y=self.rsiLowerBound, color='black', linestyle='--', linewidth=2)
+		ax2.fill_between(ratesHl2.tail(size).index, self.rsiUpperBound, rsi.tail(size),
+				where=(rsi.tail(size) > self.rsiUpperBound),
+				label="Overbought",
+				interpolate=True, color="red", alpha=0.5)
+		ax2.fill_between(ratesHl2.tail(size).index, self.rsiLowerBound, rsi.tail(size),
+				where=(rsi.tail(size) < self.rsiLowerBound),
+				label="Oversold",
+				interpolate=True, color="green", alpha=0.55)
 		ax2.set_xticks([0,
 			int(size / 5) - 1,
 			int(size * 2 / 5) - 1,
@@ -362,6 +382,7 @@ class Bot(BoxLayout):
 			size - 1])
 		ax2.tick_params(labelsize=5, labelrotation=0)
 		ax2.grid()
+		ax2.legend(fontsize=5)
 
 
 class MainApp(MDApp):
@@ -375,20 +396,21 @@ class MainApp(MDApp):
 		return Bot()
 
 	def on_start(self, **kwargs):
-		rates = get_historic_rates(symbol, timeSlice)
-		#set next analyze time
+		rates = get_historic_rates(symbol, timeSlice).tail(150)
+
 		if timeSlice <= 5:
 			self.analyzeTime = ((int(time.strftime("%-M")) // 20) * 20) + 20
 			if self.analyzeTime == 60:
 				self.analyzeTime = self.analyzeTime - 60
 		else:
 			self.analyzeTime = time.strftime("%H")
+
 		self.root.run_strategy_rsi_bb(rates)
 		self.root.update_variables(rates)
 
 	def update_screen(self):
 			try:
-				rates = get_historic_rates(symbol, timeSlice)
+				rates = get_historic_rates(symbol, timeSlice).tail(150)
 				self.root.run_strategy_rsi_bb(rates)
 				self.root.update_variables(rates)
 
