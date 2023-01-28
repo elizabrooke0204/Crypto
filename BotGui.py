@@ -50,11 +50,11 @@ class Bot(BoxLayout):
 	inSellPeriod = BooleanProperty(False)
 	inBuyPeriod = BooleanProperty(False)
 
-	rsiPeriodLength = NumericProperty(7)
+	rsiPeriodLength = NumericProperty(4)
 	rsiUpperBound = NumericProperty(70.0)
 	rsiLowerBound = NumericProperty(30.0)
-	bbPeriodLength = NumericProperty(10)
-	bbLevel = NumericProperty(2.25)
+	bbPeriodLength = NumericProperty(6)
+	bbLevel = NumericProperty(2.75)
 
 	stopLossUpper = 0.0
 	stopLossLower = 0.0
@@ -87,10 +87,10 @@ class Bot(BoxLayout):
 						send_msg("SELL - {}".format(rates["Low"].iloc[-1]))
 						print(Fore.GREEN + "---Sell at {}---".format(now) + Style.RESET_ALL)
 						sellLRC(99.0/100.0)
-						self.inSellPeriod = False
 						self.stopLossUpper = max(bbMiddle.iloc[-1], rates["High"].iloc[-1]) * (1.0 + stopLossPortion)
 					else:
 						print(Fore.RED + "***double-sell***" + Style.RESET_ALL)
+					self.inSellPeriod = False
 					self.stopLossLower = 0.0
 					
 			if not self.inBuyPeriod:
@@ -104,10 +104,10 @@ class Bot(BoxLayout):
 						send_msg("BUY - {}".format(rates["High"].iloc[-1]))
 						print(Fore.GREEN + "---Buy at {}---".format(now) + Style.RESET_ALL)
 						buyLRC(99.0/100.0)
-						self.inBuyPeriod = False	
 						self.stopLossLower = min(bbMiddle.iloc[-1], rates["Low"].iloc[-1]) * (1.0 - stopLossPortion)
 					else:
 						print(Fore.RED + "***double-buy***" + Style.RESET_ALL)
+					self.inBuyPeriod = False
 					self.stopLossUpper = 0.0
 
 			if self.stopLossLower > 0.0:
