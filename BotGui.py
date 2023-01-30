@@ -342,7 +342,6 @@ class Bot(BoxLayout):
 	# Adds new data to plt
 	def add_candles_bb_plot(self, ratesHl2, rates):
 		size = 150 - self.bbPeriodLength + 1
-		size = 100
 		rates = rates.tail(size)
 		down = rates[rates.Close < rates.Open]
 		up = rates[rates.Close >= rates.Open]
@@ -378,7 +377,6 @@ class Bot(BoxLayout):
 
 	def add_rsi_plot(self, ratesHl2):
 		size = 150 - self.bbPeriodLength + 1
-		size = 100
 		rsi = get_rsi(ratesHl2, self.rsiPeriodLength)
 		ax2.plot(rsi.tail(size), label="RSI", c="black", linewidth=1)
 		ax2.axhline(y=self.rsiUpperBound, color='black', linestyle='--', linewidth=2)

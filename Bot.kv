@@ -3,114 +3,148 @@
 		orientation: "vertical"
 
 		Label:
+			id: symbol_pair_var
 			text: "TITLE"
-			size_hint_y: .1
+			size_hint_y: .07
 
 		# Main box layout
 		BoxLayout:
 			# Graph box
 			BoxLayout:
 				id: graphBox
-				size_hint_x: .65
+				size_hint_x: .75
 				#pos_hint: {"top":1, "left":1}
 				
 			# Current information
 			BoxLayout:
 				orientation: "vertical"
-				size_hint_x: .35
+				size_hint_x: .25
 
 				# Open, high, low, close
 				BoxLayout:
-					orientation: "horizontal"
+					orientation: "vertical"
 					BoxLayout:
+						orientation: "vertical"
+						Label:
+							text: "OHLC"
 						BoxLayout:
-							orientation: "vertical"
+							orientation: "horizontal"
 							Label:
-								text: "Open"
+								text: "Open:"
 							Label:
 								id: open_var
 								text: "0.0"
 						BoxLayout:
-							orientation: "vertical"
+							orientation: "horizontal"
 							Label:
-								text: "High"
+								text: "High:"
 							Label:
 								id: high_var
 								text: "0.0"
 						BoxLayout:
-							orientation: "vertical"
+							orientation: "horizontal"
 							Label:
-								text: "Low"
+								text: "Low:"
 							Label:
 								id: low_var
 								text: "0.0"
 						BoxLayout:
-							orientation: "vertical"
+							orientation: "horizontal"
 							Label:
-								text: "Close"
+								text: "Close:"
 							Label:
 								id: close_var
 								text: "0.0"
 
 				# BB
 				BoxLayout:
-					orientation: "horizontal"
+					orientation: "vertical"
 					BoxLayout:
+						orientation: "vertical"
+						Label:
+							text: "Bollinger Bands"
 						BoxLayout:
-							orientation: "vertical"
+							orientation: "horizontal"
 							Label:
-								text: "BB Upper"
+								text: "BB Upper:"
 							Label:
 								id: bb_upper_var
 								text: "0.0"
 						BoxLayout:
-							orientation: "vertical"
+							orientation: "horizontal"
 							Label:
-								text: "BB Lower"
+								text: "BB Lower:"
 							Label:
 								id: bb_lower_var
 								text: "0.0"
-				# RSI
-				BoxLayout:
-					orientation: "horizontal"
-					BoxLayout:
 						BoxLayout:
-							orientation: "vertical"
+							orientation: "horizontal"
 							Label:
-								text: "RSI Upper"
+								text: "BB Level:"
 							Label:
-								id: rsi_upper_var
+								id: bb_level_var
 								text: "0.0"
 						BoxLayout:
-							orientation: "vertical"
+							orientation: "horizontal"
 							Label:
-								text: "RSI Value"
+								text: "BB Period:"
+							Label:
+								id: bb_period_var
+								text: "0.0"
+				# RSI
+				BoxLayout:
+					orientation: "vertical"
+					BoxLayout:
+						orientation: "vertical"
+						Label:
+							text: "Relative Strength Index"
+						BoxLayout:
+							orientation: "horizontal"
+							Label:
+								text: "RSI Value:"
 							Label:
 								id: rsi_var
 								text: "0.0"
 						BoxLayout:
-							orientation: "vertical"
+							orientation: "horizontal"
 							Label:
-								text: "RSI Lower"
+								text: "RSI Upper:"
+							Label:
+								id: rsi_upper_var
+								text: "0.0"
+						BoxLayout:
+							orientation: "horizontal"
+							Label:
+								text: "RSI Lower:"
 							Label:
 								id: rsi_lower_var
+								text: "0.0"
+						BoxLayout:
+							orientation: "horizontal"
+							Label:
+								text: "RSI Period:"
+							Label:
+								id: rsi_period_var
 								text: "0.0"
 
 				# Stop Loss
 				BoxLayout:
-					orientation: "horizontal"
+					orientation: "vertical"
 					BoxLayout:
+						orientation: "vertical"
+						Label:
+							text: "Stop Loss"
 						BoxLayout:
-							orientation: "vertical"
+							orientation: "horizontal"
 							Label:
-								text: "StopLoss Upper"
+								text: "SL Upper:"
 							Label:
 								id: stoploss_upper_var
 								text: "0.0"
 						BoxLayout:
-							orientation: "vertical"
+							orientation: "horizontal"
 							Label:
-								text: "StopLoss Lower"
+								text: "SL Lower:"
 							Label:
 								id: stoploss_lower_var
 								text: "0.0"
