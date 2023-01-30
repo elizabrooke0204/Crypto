@@ -35,7 +35,9 @@ url = "https://api.pro.coinbase.com"
 #url = "https://api-public.sandbox.pro.coinbase.com"
 client = cbpro.AuthenticatedClient(api_key, api_secret, api_pass, api_url=url)
 
-fig, (ax1, ax2) = plt.subplots(2)
+fig, (ax1, ax2) = plt.subplots(2, gridspec_kw={"height_ratios": [2, 1]})
+fig.tight_layout()
+fig.subplots_adjust(left=0.027)
 Window.size = (1000, 700)
 
 # global variables initial parameters
@@ -301,25 +303,31 @@ class Bot(BoxLayout):
 			print(Fore.RED + "ANALYZE-ERROR." + Style.RESET_ALL)
 			print(err)
 
+	def update_symbol_pair(self):
+		self.ids.symbol_pair_var.text = symbol + "-USD"
 
 	def update_variables(self, rates):
 		ratesHl2 = pd.Series((rates["High"] + rates["Low"]).div(2).values, index=rates.index)
 		ratesRsi = get_rsi(ratesHl2, self.rsiPeriodLength)
 		(bbUpper, bbMiddle, bbLower) = get_bb(ratesHl2, self.bbPeriodLength, self.bbLevel)
 
-		self.ids.open_var.text = (str(rates["Open"].iloc[-1]))[:5]
-		self.ids.high_var.text = (str(rates["High"].iloc[-1]))[:5]
-		self.ids.low_var.text = (str(rates["Low"].iloc[-1]))[:5]
-		self.ids.close_var.text = (str(rates["Close"].iloc[-1]))[:5]
+		self.ids.open_var.text = (str(rates["Open"].iloc[-1]))[:6]
+		self.ids.high_var.text = (str(rates["High"].iloc[-1]))[:6]
+		self.ids.low_var.text = (str(rates["Low"].iloc[-1]))[:6]
+		self.ids.close_var.text = (str(rates["Close"].iloc[-1]))[:6]
 
-		self.ids.bb_upper_var.text = (str(bbUpper.iloc[-1]))[:5]
-		self.ids.bb_lower_var.text = (str(bbLower.iloc[-1]))[:5]
-		self.ids.rsi_upper_var.text = (str(self.rsiUpperBound))[:5]
+		self.ids.bb_upper_var.text = (str(bbUpper.iloc[-1]))[:6]
+		self.ids.bb_lower_var.text = (str(bbLower.iloc[-1]))[:6]
+		self.ids.bb_level_var.text = (str(self.bbLevel))
+		self.ids.bb_period_var.text = (str(self.bbPeriodLength))
+
 		self.ids.rsi_var.text = (str(ratesRsi.iloc[-1]))[:5]
-		self.ids.rsi_lower_var.text = (str(self.rsiLowerBound))[:5]
+		self.ids.rsi_upper_var.text = (str(self.rsiUpperBound))[:6]
+		self.ids.rsi_lower_var.text = (str(self.rsiLowerBound))[:6]
+		self.ids.rsi_period_var.text = (str(self.rsiPeriodLength))
 
-		self.ids.stoploss_upper_var.text = (str(self.stopLossUpper))[:5]
-		self.ids.stoploss_lower_var.text = (str(self.stopLossLower))[:5]
+		self.ids.stoploss_upper_var.text = (str(self.stopLossUpper))[:6]
+		self.ids.stoploss_lower_var.text = (str(self.stopLossLower))[:6]
 
 		# Clear plot and widget, set new plot and widget
 		plt.cla()
@@ -334,6 +342,7 @@ class Bot(BoxLayout):
 	# Adds new data to plt
 	def add_candles_bb_plot(self, ratesHl2, rates):
 		size = 150 - self.bbPeriodLength + 1
+		size = 100
 		rates = rates.tail(size)
 		down = rates[rates.Close < rates.Open]
 		up = rates[rates.Close >= rates.Open]
@@ -345,12 +354,19 @@ class Bot(BoxLayout):
 		ax1.plot(bbMiddle.tail(size), label="Bollinger Middle", linewidth=1, c="black")
 		ax1.plot(bbLower.tail(size), label="Bollinger Down", linewidth=1, c="b")
 		ax1.set_xticks([0,
-			int(size / 5) - 1,
-			int(size * 2 / 5) - 1,
-			int(size * 3 / 5) - 1,
-			int(size * 4 / 5) - 1,
+			int(size / 10) - 1,
+			int(size * 2 / 10) - 1,
+			int(size * 3 / 10) - 1,
+			int(size * 4 / 10) - 1,
+			int(size * 5 / 10) - 1,
+			int(size * 6 / 10) - 1,
+			int(size * 7 / 10) - 1,
+			int(size * 8 / 10) - 1,
+			int(size * 9 / 10) - 1,
 			size - 1])
-		ax1.tick_params(labelsize=5, labelrotation=0)
+		ax1.tick_params(labelsize=5)
+		ax1.yaxis.tick_right()
+		plt.setp(ax1.xaxis.get_majorticklabels(), rotation=40, ha="right")
 		ax1.grid()
 
 		ax1.bar(up.index, up.Close - up.Open, widthOC, bottom=up.Open, color="green")
@@ -362,6 +378,7 @@ class Bot(BoxLayout):
 
 	def add_rsi_plot(self, ratesHl2):
 		size = 150 - self.bbPeriodLength + 1
+		size = 100
 		rsi = get_rsi(ratesHl2, self.rsiPeriodLength)
 		ax2.plot(rsi.tail(size), label="RSI", c="black", linewidth=1)
 		ax2.axhline(y=self.rsiUpperBound, color='black', linestyle='--', linewidth=2)
@@ -375,12 +392,19 @@ class Bot(BoxLayout):
 				label="Oversold",
 				interpolate=True, color="green", alpha=0.55)
 		ax2.set_xticks([0,
-			int(size / 5) - 1,
-			int(size * 2 / 5) - 1,
-			int(size * 3 / 5) - 1,
-			int(size * 4 / 5) - 1,
+			int(size / 10) - 1,
+			int(size * 2 / 10) - 1,
+			int(size * 3 / 10) - 1,
+			int(size * 4 / 10) - 1,
+			int(size * 5 / 10) - 1,
+			int(size * 6 / 10) - 1,
+			int(size * 7 / 10) - 1,
+			int(size * 8 / 10) - 1,
+			int(size * 9 / 10) - 1,
 			size - 1])
-		ax2.tick_params(labelsize=5, labelrotation=0)
+		ax2.tick_params(labelsize=5)
+		ax2.yaxis.tick_right()
+		plt.setp(ax2.xaxis.get_majorticklabels(), rotation=40, ha="right")
 		ax2.grid()
 		ax2.legend(fontsize=5)
 
@@ -392,7 +416,7 @@ class MainApp(MDApp):
 		self.theme_cls.theme_style = "Dark"
 		self.theme_cls.primary_palette = "BlueGray"
 		Builder.load_file("Bot.kv")
-		send_msg("Bot started")
+		#send_msg("Bot started")
 		return Bot()
 
 	def on_start(self, **kwargs):
@@ -405,6 +429,7 @@ class MainApp(MDApp):
 		else:
 			self.analyzeTime = time.strftime("%H")
 
+		self.root.update_symbol_pair()
 		self.root.run_strategy_rsi_bb(rates)
 		self.root.update_variables(rates)
 
