@@ -317,6 +317,21 @@ def get_orders():
 		print(order)
 
 
+def append_order_to_csv(date, price, side):
+	with open("order_history.csv", "a") as f:
+		writerObj = csv.writer(f)
+		writerObj.writerow([date, price, side])
+		f.close()
+
+
+def get_order_history():
+	try:
+		orders = pd.read_csv("order_history.csv", index_col=0)
+		print(orders)
+	except Exception as err:
+		print("CSV is empty or does not exist")
+
+
 def getAskPrice(symbolPair):
 	price = client.get_product_ticker(product_id=symbolPair)["ask"]
 	return (round(float(price) * 0.9995, 4))
