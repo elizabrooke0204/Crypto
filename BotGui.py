@@ -86,9 +86,10 @@ class Bot(BoxLayout):
 			else:
 				if (ratesRsi.iloc[-1] <= self.rsiUpperBound) and (rates["High"].iloc[-1] <= bbUpper.iloc[-1]):
 					if self.stopLossUpper == 0.0:
-						send_msg("SELL - {}".format(rates["Low"].iloc[-1]))
+						send_msg("SELL - {}".format(rates["Close"].iloc[-1]))
 						print(Fore.GREEN + "---Sell at {}---".format(now) + Style.RESET_ALL)
 						sellLRC(99.0/100.0)
+						append_order_to_csv(now.strftime("%m/%d - %H:%M:%S"), rates["Close"].iloc[-1], "SELL")
 						self.stopLossUpper = max(bbMiddle.iloc[-1], rates["High"].iloc[-1]) * (1.0 + stopLossPortion)
 					else:
 						print(Fore.RED + "***double-sell***" + Style.RESET_ALL)
@@ -103,9 +104,10 @@ class Bot(BoxLayout):
 			else:
 				if (ratesRsi.iloc[-1] >= self.rsiLowerBound) and (rates["Low"].iloc[-1] >= bbLower.iloc[-1]):
 					if self.stopLossLower == 0.0:
-						send_msg("BUY - {}".format(rates["High"].iloc[-1]))
+						send_msg("BUY - {}".format(rates["Close"].iloc[-1]))
 						print(Fore.GREEN + "---Buy at {}---".format(now) + Style.RESET_ALL)
 						buyLRC(99.0/100.0)
+						append_order_to_csv(now.strftime("%m/%d - %H:%M:%S"), rates["Close"].iloc[-1], "BUY")
 						self.stopLossLower = min(bbMiddle.iloc[-1], rates["Low"].iloc[-1]) * (1.0 - stopLossPortion)
 					else:
 						print(Fore.RED + "***double-buy***" + Style.RESET_ALL)
@@ -116,9 +118,10 @@ class Bot(BoxLayout):
 				if (min(bbMiddle.iloc[-1], rates["Low"].iloc[-1]) * (1.0 - stopLossPortion)) > self.stopLossLower:
 					self.stopLossLower = min(bbMiddle.iloc[-1], rates["Low"].iloc[-1]) * (1.0 - stopLossPortion)
 				if rates["Low"].iloc[-1] < self.stopLossLower:
-					send_msg("STOPLOSS SELL - {}".format(rates["Low"].iloc[-1]))
+					send_msg("STOPLOSS SELL - {}".format(rates["Close"].iloc[-1]))
 					print(Fore.RED + "---StopLoss Sell at {}---".format(now) + Style.RESET_ALL)
 					sellLRC(99.0 / 100.0)
+					append_order_to_csv(now.strftime("%m/%d - %H:%M:%S"), rates["Close"].iloc[-1], "SL-SELL")
 					self.stopLossUpper = max(bbMiddle.iloc[-1], rates["High"].iloc[-1]) * (1.0 + stopLossPortion)
 					self.stopLossLower = 0.0
 
@@ -126,9 +129,10 @@ class Bot(BoxLayout):
 				if (max(bbMiddle.iloc[-1], rates["High"].iloc[-1]) * (1.0 + stopLossPortion)) < self.stopLossUpper:
 					self.stopLossUpper = max(bbMiddle.iloc[-1], rates["High"].iloc[-1]) * (1.0 + stopLossPortion)
 				if rates["High"].iloc[-1] > self.stopLossUpper:
-					send_msg("STOPLOSS BUY - {}".format(rates["High"].iloc[-1]))
+					send_msg("STOPLOSS BUY - {}".format(rates["Close"].iloc[-1]))
 					print(Fore.RED + "---StopLoss Buy at {}---".format(now) + Style.RESET_ALL)
 					buyLRC(99.0 / 100.0)
+					append_order_to_csv(now.strftime("%m/%d - %H:%M:%S"), rates["Close"].iloc[-1], "SL-BUY")
 					self.stopLossLower = min(bbMiddle.iloc[-1], rates["Low"].iloc[-1]) * (1.0 - stopLossPortion)
 					self.stopLossUpper = 0.0
 			
@@ -388,7 +392,7 @@ class Bot(BoxLayout):
 		ax2.fill_between(ratesHl2.tail(size).index, self.rsiLowerBound, rsi.tail(size),
 				where=(rsi.tail(size) < self.rsiLowerBound),
 				label="Oversold",
-				interpolate=True, color="green", alpha=0.55)
+				interpolate=True, color="green", alpha=0.5)
 		ax2.set_xticks([0,
 			int(size / 10) - 1,
 			int(size * 2 / 10) - 1,
