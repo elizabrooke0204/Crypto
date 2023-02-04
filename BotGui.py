@@ -192,6 +192,8 @@ class Bot(BoxLayout):
 								bbUpper = bbUpperSeries.tolist()[(thisBbPeriodLength - 1):]
 								bbMiddle = bbMiddleSeries.tolist()[(thisBbPeriodLength - 1):]
 								bbLower = bbLowerSeries.tolist()[(thisBbPeriodLength - 1):]
+								stopLossLower = 0.0
+								stopLossUpper = 0.0
 
 								# Parse through data and determine buy or sell times and prices
 								# Calculates endWallet

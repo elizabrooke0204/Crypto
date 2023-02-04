@@ -35,11 +35,8 @@ def analyze_rsi_bb(symbol, timeSlice, portion, stopLossPortion):
 
 	rates = get_historic_rates(symbol, timeSlice).tail(150)
 	ratesHl2Series = pd.Series((rates["High"] + rates["Low"]).div(2).values, index=rates.index)
-
-	#timeSlicePerDay = float(timeSlice[:len(timeSlice) - 3])
-	timeSlicePerDay = timeSlice * 200 / (60 * 24)
 	
-	for rsiPeriodLength in range(2, 14):
+	for rsiPeriodLength in range(3, 14):
 		print(rsiPeriodLength)
 		# Set RSI values
 		ratesRsiSeries = get_rsi(ratesHl2Series, rsiPeriodLength)
@@ -70,6 +67,8 @@ def analyze_rsi_bb(symbol, timeSlice, portion, stopLossPortion):
 						bbUpper = bbUpperSeries.tolist()[(bbPeriodLength - 1):]
 						bbMiddle = bbMiddleSeries.tolist()[(bbPeriodLength - 1):]
 						bbLower = bbLowerSeries.tolist()[(bbPeriodLength - 1):]
+						stopLossUpper = 0.0
+						stopLossLower = 0.0
 
 						# Parse through data and determine buy or sell times and prices
 						# Calculates endWallet
@@ -126,7 +125,6 @@ def analyze_rsi_bb(symbol, timeSlice, portion, stopLossPortion):
 
 						if (delta >= bestDelta):
 							bestDelta = delta
-							#deltaPerDay = delta / timeSlicePerDay
 							currentTopParameters.append([actionGainLoss, delta, timeSlice, rsiPeriodLength, rsiUpperBound, rsiLowerBound, bbPeriodLength, bbLevel])
 
 						inSellPeriod = False
@@ -197,9 +195,6 @@ def get_delta(priceNow, priceOld):
 # Test specific most efficient parameters deteremined by analyze_rsi_bb()
 def test_rsi_bb_parameters(symbol, timeSlice, rsiPeriodLength, rsiUpperBound, rsiLowerBound, bbPeriodLength, bbLevel):
 	# Variable holders
-	rsiSignals = []
-	bbSignals = []
-
 	inSellPeriod = False
 	inBuyPeriod = False
 
@@ -303,10 +298,10 @@ def test_rsi_bb_parameters(symbol, timeSlice, rsiPeriodLength, rsiUpperBound, rs
 
 def multiprocess_rsi_bb(symbol):
 	portion = 0.99
-	t1 = multiprocessing.Process(target=analyze_rsi_bb, args=(symbol, 1, portion, 0.026))
-	t2 = multiprocessing.Process(target=analyze_rsi_bb, args=(symbol, 5, portion, 0.026))
-	t3 = multiprocessing.Process(target=analyze_rsi_bb, args=(symbol, 15, portion, 0.026))
-	t4 = multiprocessing.Process(target=analyze_rsi_bb, args=(symbol, 60, portion, 0.026))
+	t1 = multiprocessing.Process(target=analyze_rsi_bb, args=(symbol, 5, portion, 0.010))
+	t2 = multiprocessing.Process(target=analyze_rsi_bb, args=(symbol, 5, portion, 0.015))
+	t3 = multiprocessing.Process(target=analyze_rsi_bb, args=(symbol, 15, portion, 0.010))
+	t4 = multiprocessing.Process(target=analyze_rsi_bb, args=(symbol, 15, portion, 0.015))
 
 	t1.start()
 	t2.start()
@@ -338,9 +333,9 @@ def multiprocess_test_all():
 
 
 if __name__ == "__main__":
-	#analyze_rsi_bb("MAGIC", 1, 0.99, 0.025)
-	test_rsi_bb_parameters("RNDR", 15, 3, 90, 24, 9, 2.25)
-	#multiprocess_rsi_bb("MAGIC")
+	#analyze_rsi_bb("BTC", 60, 0.995, 0.025)
+	test_rsi_bb_parameters("BTC", 60, 4, 82, 16, 4, 3.0)
+	#multiprocess_rsi_bb("BTC")
 
 	#multiprocess_test_all()
 	#print(get_price_differences("LINK"))
