@@ -12,6 +12,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 from datetime import datetime, timedelta
 from auth_cred import (api_secret, api_key, api_pass)
+from colorama import Fore
+from colorama import Back
+from colorama import Style
+from Contact import *
+from KrakenFuncs import *
 
 # Set url and authticate client
 url = "https://api.pro.coinbase.com"
@@ -30,7 +35,6 @@ def get_ema(rates, periodLength):
 
 # ------------------------- Momentum indicators (oscillators) --------------------------
 
-#recieves rates as pandas Series and performs rsi calculations
 def get_macd(rates, periodShort, periodLong, periodEma):
 	emaShort = get_ema(rates, periodShort)
 	emaLong = get_ema(rates, periodLong)
@@ -232,6 +236,14 @@ def plot_rsi(rsi, rsiUpperBound, rsiLowerBound):
 
 
 # ---------------------------------- Sell/Buy functions -----------------------------------
+
+def create_order(price, side, altSymbol, altMarket):
+		now = datetime.now()
+		send_msg(side + " - " + str(price))
+		print(Fore.RED + "---" + side + " at {}---".format(now) + Style.RESET_ALL)
+		print(kraken_order(price, side, altSymbol, altMarket))
+		append_order_to_csv(now.strftime("%m/%d - %H:%M:%S"), price, side)
+
 
 def sellBTC(portion):
 	trade = client.sell(price=str(getAskPrice("BTC-USD")),
