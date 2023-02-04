@@ -41,9 +41,12 @@ fig.subplots_adjust(left=0.027)
 Window.size = (1000, 700)
 
 # global variables initial parameters
-symbol = "MAGIC"
+symbol = "BTC"
+altSymbol = "XXBT"
+market = "USD"
+altMarket = "ZUSD"
 timeSlice = 5
-stopLossPortion = 0.025
+stopLossPortion = 0.015
 
 
 class Bot(BoxLayout):
@@ -58,8 +61,13 @@ class Bot(BoxLayout):
 	bbPeriodLength = NumericProperty(6)
 	bbLevel = NumericProperty(2.75)
 
-	stopLossUpper = 0.0
-	stopLossLower = 0.0
+	rates = get_historic_rates(symbol, timeSlice)
+	if float(kraken_get_balance(altMarket)) > (float(kraken_get_balance(altSymbol)) * rates["Close"].iloc[-1]):
+		stopLossUpper = rates["High"].iloc[-1] * (1.0 + (2 * stopLossPortion))
+		stopLossLower = 0.0
+	else:
+		stopLossLower = rates["Low"].iloc[-1] * (1.0 - (2 * stopLossPortion))
+		stopLossUpper = 0.0
 
 	def __init__(self, **kwargs):
 		super().__init__(**kwargs)
@@ -86,10 +94,7 @@ class Bot(BoxLayout):
 			else:
 				if (ratesRsi.iloc[-1] <= self.rsiUpperBound) and (rates["High"].iloc[-1] <= bbUpper.iloc[-1]):
 					if self.stopLossUpper == 0.0:
-						send_msg("SELL - {}".format(rates["Close"].iloc[-1]))
-						print(Fore.GREEN + "---Sell at {}---".format(now) + Style.RESET_ALL)
-						sellLRC(99.0/100.0)
-						append_order_to_csv(now.strftime("%m/%d - %H:%M:%S"), rates["Close"].iloc[-1], "SELL")
+						create_order(rates["Close"].iloc[-1], "sell", altSymbol, altMarket)
 						self.stopLossUpper = max(bbMiddle.iloc[-1], rates["High"].iloc[-1]) * (1.0 + stopLossPortion)
 					else:
 						print(Fore.RED + "***double-sell***" + Style.RESET_ALL)
@@ -104,10 +109,7 @@ class Bot(BoxLayout):
 			else:
 				if (ratesRsi.iloc[-1] >= self.rsiLowerBound) and (rates["Low"].iloc[-1] >= bbLower.iloc[-1]):
 					if self.stopLossLower == 0.0:
-						send_msg("BUY - {}".format(rates["Close"].iloc[-1]))
-						print(Fore.GREEN + "---Buy at {}---".format(now) + Style.RESET_ALL)
-						buyLRC(99.0/100.0)
-						append_order_to_csv(now.strftime("%m/%d - %H:%M:%S"), rates["Close"].iloc[-1], "BUY")
+						create_order(rates["Close"].iloc[-1], "buy", altSymbol, altMarket)
 						self.stopLossLower = min(bbMiddle.iloc[-1], rates["Low"].iloc[-1]) * (1.0 - stopLossPortion)
 					else:
 						print(Fore.RED + "***double-buy***" + Style.RESET_ALL)
@@ -118,10 +120,7 @@ class Bot(BoxLayout):
 				if (min(bbMiddle.iloc[-2], rates["Low"].iloc[-2]) * (1.0 - stopLossPortion)) > self.stopLossLower:
 					self.stopLossLower = min(bbMiddle.iloc[-2], rates["Low"].iloc[-2]) * (1.0 - stopLossPortion)
 				if rates["Low"].iloc[-1] < self.stopLossLower:
-					send_msg("STOPLOSS SELL - {}".format(rates["Close"].iloc[-1]))
-					print(Fore.RED + "---StopLoss Sell at {}---".format(now) + Style.RESET_ALL)
-					sellLRC(99.0 / 100.0)
-					append_order_to_csv(now.strftime("%m/%d - %H:%M:%S"), rates["Close"].iloc[-1], "SL-SELL")
+					create_order(rates["Close"].iloc[-1], "sell", altSymbol, altMarket)
 					self.stopLossUpper = max(bbMiddle.iloc[-1], rates["High"].iloc[-1]) * (1.0 + stopLossPortion)
 					self.stopLossLower = 0.0
 
@@ -129,10 +128,7 @@ class Bot(BoxLayout):
 				if (max(bbMiddle.iloc[-2], rates["High"].iloc[-2]) * (1.0 + stopLossPortion)) < self.stopLossUpper:
 					self.stopLossUpper = max(bbMiddle.iloc[-2], rates["High"].iloc[-2]) * (1.0 + stopLossPortion)
 				if rates["High"].iloc[-1] > self.stopLossUpper:
-					send_msg("STOPLOSS BUY - {}".format(rates["Close"].iloc[-1]))
-					print(Fore.RED + "---StopLoss Buy at {}---".format(now) + Style.RESET_ALL)
-					buyLRC(99.0 / 100.0)
-					append_order_to_csv(now.strftime("%m/%d - %H:%M:%S"), rates["Close"].iloc[-1], "SL-BUY")
+					create_order(rates["Close"].iloc[-1], "buy", altSymbol, altMarket)
 					self.stopLossLower = min(bbMiddle.iloc[-1], rates["Low"].iloc[-1]) * (1.0 - stopLossPortion)
 					self.stopLossUpper = 0.0
 			
@@ -308,51 +304,47 @@ class Bot(BoxLayout):
 			print(err)
 
 	def update_symbol_pair(self):
-		self.ids.symbol_pair_var.text = symbol + "-USD"
+		self.ids.symbol_pair_var.text = symbol + "-" + market
 
 	def update_variables(self, rates):
 		ratesHl2 = pd.Series((rates["High"] + rates["Low"]).div(2).values, index=rates.index)
 		ratesRsi = get_rsi(ratesHl2, self.rsiPeriodLength)
 		(bbUpper, bbMiddle, bbLower) = get_bb(ratesHl2, self.bbPeriodLength, self.bbLevel)
 
-		self.ids.open_var.text = (str(rates["Open"].iloc[-1]))[:6]
-		self.ids.high_var.text = (str(rates["High"].iloc[-1]))[:6]
-		self.ids.low_var.text = (str(rates["Low"].iloc[-1]))[:6]
-		self.ids.close_var.text = (str(rates["Close"].iloc[-1]))[:6]
+		self.ids.open_var.text = (str(rates["Open"].iloc[-1]))[:7]
+		self.ids.high_var.text = (str(rates["High"].iloc[-1]))[:7]
+		self.ids.low_var.text = (str(rates["Low"].iloc[-1]))[:7]
+		self.ids.close_var.text = (str(rates["Close"].iloc[-1]))[:7]
 
-		self.ids.bb_upper_var.text = (str(bbUpper.iloc[-1]))[:6]
-		self.ids.bb_lower_var.text = (str(bbLower.iloc[-1]))[:6]
+		self.ids.bb_upper_var.text = (str(bbUpper.iloc[-1]))[:7]
+		self.ids.bb_lower_var.text = (str(bbLower.iloc[-1]))[:7]
 		self.ids.bb_level_var.text = (str(self.bbLevel))
 		self.ids.bb_period_var.text = (str(self.bbPeriodLength))
 
 		self.ids.rsi_var.text = (str(ratesRsi.iloc[-1]))[:5]
-		self.ids.rsi_upper_var.text = (str(self.rsiUpperBound))[:6]
-		self.ids.rsi_lower_var.text = (str(self.rsiLowerBound))[:6]
+		self.ids.rsi_upper_var.text = (str(self.rsiUpperBound))[:5]
+		self.ids.rsi_lower_var.text = (str(self.rsiLowerBound))[:5]
 		self.ids.rsi_period_var.text = (str(self.rsiPeriodLength))
 
-		self.ids.stoploss_upper_var.text = (str(self.stopLossUpper))[:6]
-		self.ids.stoploss_lower_var.text = (str(self.stopLossLower))[:6]
+		self.ids.stoploss_upper_var.text = (str(self.stopLossUpper))[:7]
+		self.ids.stoploss_lower_var.text = (str(self.stopLossLower))[:7]
 
 		# Clear plot and widget, set new plot and widget
 		plt.cla()
 		ax1.cla()
 		ax2.cla()
 		self.graphBox.clear_widgets()
-		Bot.add_candles_bb_plot(self, ratesHl2, rates)
+		Bot.add_bb_plot(self, ratesHl2)
+		Bot.add_cadles_plot(self, rates)
 		Bot.add_rsi_plot(self, ratesHl2)
 		self.graphBox.add_widget(FigureCanvasKivyAgg(plt.gcf()))
 
 
 	# Adds new data to plt
-	def add_candles_bb_plot(self, ratesHl2, rates):
+	def add_bb_plot(self, ratesHl2):
 		size = 150 - self.bbPeriodLength + 1
-		rates = rates.tail(size)
-		down = rates[rates.Close < rates.Open]
-		up = rates[rates.Close >= rates.Open]
-		widthOC = 0.8
-		widthHL = 0.2
-	
 		(bbUpper, bbMiddle, bbLower) = get_bb(ratesHl2, self.bbPeriodLength, self.bbLevel)
+		
 		ax1.plot(bbUpper.tail(size), label="Bollinger Up", linewidth=1, c="b")
 		ax1.plot(bbMiddle.tail(size), label="Bollinger Middle", linewidth=1, c="black")
 		ax1.plot(bbLower.tail(size), label="Bollinger Down", linewidth=1, c="b")
@@ -371,6 +363,14 @@ class Bot(BoxLayout):
 		ax1.yaxis.tick_right()
 		plt.setp(ax1.xaxis.get_majorticklabels(), rotation=40, ha="right")
 		ax1.grid()
+
+	def add_cadles_plot(self, rates):
+		size = 150 - self.bbPeriodLength + 1
+		rates = rates.tail(size)
+		down = rates[rates.Close < rates.Open]
+		up = rates[rates.Close >= rates.Open]
+		widthOC = 0.8
+		widthHL = 0.2
 
 		ax1.bar(up.index, up.Close - up.Open, widthOC, bottom=up.Open, color="green")
 		ax1.bar(up.index, up.High - up.Close, widthHL, bottom=up.Close, color="green")
