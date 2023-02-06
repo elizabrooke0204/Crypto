@@ -16,24 +16,19 @@ from kivy.garden.matplotlib.backend_kivyagg import FigureCanvasKivyAgg
 import time
 import requests
 import threading
-import cbpro
 import pandas as pd
+import matplotlib.pyplot as plt
 from datetime import datetime
 from datetime import timedelta
 from colorama import Fore
 from colorama import Back
 from colorama import Style
-import matplotlib.pyplot as plt
 
 # File imports
 from HelperFuncs import *
+from KrakenFuncs import *
 from Contact import *
 from auth_cred import (api_secret, api_key, api_pass)
-
-# Set url and authticate client
-url = "https://api.pro.coinbase.com"
-#url = "https://api-public.sandbox.pro.coinbase.com"
-client = cbpro.AuthenticatedClient(api_key, api_secret, api_pass, api_url=url)
 
 fig, (ax1, ax2) = plt.subplots(2, gridspec_kw={"height_ratios": [2, 1]})
 fig.tight_layout()
@@ -131,13 +126,6 @@ class Bot(BoxLayout):
 					create_order(rates["Close"].iloc[-1], "buy", altSymbol, altMarket)
 					self.stopLossLower = min(bbMiddle.iloc[-1], rates["Low"].iloc[-1]) * (1.0 - stopLossPortion)
 					self.stopLossUpper = 0.0
-			
-			#print(Fore.YELLOW +
-			#	"{} - InSellPeriod: {} InBuyPeriod: {}".format(now.strftime("%m/%d - %H:%M:%S"),self.inSellPeriod, self.inBuyPeriod) +
-			#	Style.RESET_ALL)
-			#print("   RSI: {:.3f}, Upper: {}, Lower: {}".format(ratesRsi.iloc[-1], self.rsiUpperBound, self.rsiLowerBound))
-			#print("   bbUpper: {:.3f} - High: {:.3f} | Low: {:.3f} - bbLower: {:.3f}".format(bbUpper.iloc[-1], rates["High"].iloc[-1], rates["Low"].iloc[-1], bbLower.iloc[-1]))
-			#print("   self.stopLossUpper: {:.3f} | self.stopLossLower: {:.3f}".format(self.stopLossUpper, self.stopLossLower))
 
 		# Catches error in Strategy thread and prints to screen
 		except Exception as err:
@@ -305,8 +293,10 @@ class Bot(BoxLayout):
 			print(Fore.RED + "ANALYZE-ERROR." + Style.RESET_ALL)
 			print(err)
 
+
 	def update_symbol_pair(self):
 		self.ids.symbol_pair_var.text = symbol + "-" + market
+
 
 	def update_variables(self, rates):
 		ratesHl2 = pd.Series((rates["High"] + rates["Low"]).div(2).values, index=rates.index)
@@ -342,11 +332,9 @@ class Bot(BoxLayout):
 		self.graphBox.add_widget(FigureCanvasKivyAgg(plt.gcf()))
 
 
-	# Adds new data to plt
 	def add_bb_plot(self, ratesHl2):
 		size = 150 - self.bbPeriodLength + 1
 		(bbUpper, bbMiddle, bbLower) = get_bb(ratesHl2, self.bbPeriodLength, self.bbLevel)
-		
 		ax1.plot(bbUpper.tail(size), label="Bollinger Up", linewidth=1, c="b")
 		ax1.plot(bbMiddle.tail(size), label="Bollinger Middle", linewidth=1, c="black")
 		ax1.plot(bbLower.tail(size), label="Bollinger Down", linewidth=1, c="b")
@@ -366,6 +354,7 @@ class Bot(BoxLayout):
 		plt.setp(ax1.xaxis.get_majorticklabels(), rotation=40, ha="right")
 		ax1.grid()
 
+
 	def add_cadles_plot(self, rates):
 		size = 150 - self.bbPeriodLength + 1
 		rates = rates.tail(size)
@@ -380,6 +369,7 @@ class Bot(BoxLayout):
 		ax1.bar(down.index, down.Close - down.Open, widthOC, bottom=down.Open, color="red")
 		ax1.bar(down.index, down.High - down.Open, widthHL, bottom=down.Open, color="red")
 		ax1.bar(down.index, down.Low - down.Close, widthHL, bottom=down.Close, color="red")
+
 
 	def add_rsi_plot(self, ratesHl2):
 		size = 150 - self.bbPeriodLength + 1
@@ -420,8 +410,8 @@ class MainApp(MDApp):
 		self.theme_cls.theme_style = "Dark"
 		self.theme_cls.primary_palette = "BlueGray"
 		Builder.load_file("Bot.kv")
-		#send_msg("Bot started")
 		return Bot()
+
 
 	def on_start(self, **kwargs):
 		rates = get_historic_rates(symbol, timeSlice).tail(150)
@@ -436,6 +426,7 @@ class MainApp(MDApp):
 		self.root.update_symbol_pair()
 		self.root.run_strategy_rsi_bb(rates)
 		self.root.update_variables(rates)
+
 
 	def update_screen(self):
 			try:

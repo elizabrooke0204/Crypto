@@ -27,6 +27,7 @@ def kraken_order(price, side, altSymbol, altMarket):
 		})
 	return resp.json()
 
+
 def kraken_get_balance(altSymbol):
 	resp = kraken_request('/0/private/Balance', {
 	"nonce": str(int(1000*time.time()))})
@@ -37,15 +38,16 @@ def kraken_get_balance(altSymbol):
 		print(err)
 		return None
 
+
 def kraken_request(uri_path, data):
 	headers = {}
 	headers["API-Key"] = kraken_api_key
-	headers["API-Sign"] = get_kraken_signature(uri_path, data)
+	headers["API-Sign"] = kraken_generate_signature(uri_path, data)
 	req = requests.post((api_url + uri_path), headers=headers, data=data)
 	return req
 
 
-def get_kraken_signature(urlpath, data):
+def kraken_generate_signature(urlpath, data):
 	postdata = urllib.parse.urlencode(data)
 	encoded = (str(data['nonce']) + postdata).encode()
 	message = urlpath.encode() + hashlib.sha256(encoded).digest()
