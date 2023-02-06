@@ -41,7 +41,7 @@ altSymbol = "XXBT"
 market = "USD"
 altMarket = "ZUSD"
 timeSlice = 5
-stopLossPortion = 0.015
+stopLossPortion = 0.005
 
 
 class Bot(BoxLayout):
@@ -135,9 +135,10 @@ class Bot(BoxLayout):
 
 
 	def analyze_rsi_bb(self, rates):
-		print("Analyze thread started")
-		now = datetime.now()
 		try:
+			print("Analyze thread started")
+			now = datetime.now()
+			
 			# Variable holders
 			bestDelta = 0.0
 			portion = 0.99
