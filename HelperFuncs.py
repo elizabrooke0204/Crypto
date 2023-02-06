@@ -3,7 +3,6 @@
 #Library imports
 import time
 import requests
-import cbpro
 import csv
 import json
 import http.client
@@ -11,17 +10,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 from datetime import datetime, timedelta
-from auth_cred import (api_secret, api_key, api_pass)
 from colorama import Fore
 from colorama import Back
 from colorama import Style
 from Contact import *
 from KrakenFuncs import *
-
-# Set url and authticate client
-url = "https://api.pro.coinbase.com"
-#url = "https://api-public.sandbox.pro.coinbase.com"
-client = cbpro.AuthenticatedClient(api_key, api_secret, api_pass, api_url=url)
 
 
 # --------------------------------- Trend indicators -----------------------------------
@@ -235,7 +228,8 @@ def plot_rsi(rsi, rsiUpperBound, rsiLowerBound):
 	return plt
 
 
-# ---------------------------------- Sell/Buy functions -----------------------------------
+# ------------------------------- Bot-helper functions ---------------------------------
+
 
 def create_order(price, side, altSymbol, altMarket):
 		now = datetime.now()
@@ -243,91 +237,6 @@ def create_order(price, side, altSymbol, altMarket):
 		print(Fore.RED + "---" + side + " at {}---".format(now) + Style.RESET_ALL)
 		print(kraken_order(price, side, altSymbol, altMarket))
 		append_order_to_csv(now.strftime("%m/%d - %H:%M:%S"), price, side)
-
-
-def sellBTC(portion):
-	trade = client.sell(price=str(getAskPrice("BTC-USD")),
-		size=str(getAvailableBTC(portion)),
-		order_type="limit",
-		product_id="BTC-USD",
-		post_only=True)
-	print(trade)
-
-
-def sellLRC(portion):
-	trade = client.sell(price=str(getAskPrice("LRC-USD")),
-		size=str(getAvailableLRC(portion)),
-		order_type="limit",
-		product_id="LRC-USD",
-		post_only=True)
-	print(trade)
-
-
-def buyBTC(portion):
-	trade = client.buy(price=str(getBidPrice("BTC-USD")),
-		size=str(round(getAvailableUSD(portion) / getBidPrice("BTC-USD"), 4)),
-		order_type="limit",
-		product_id="BTC-USD",
-		post_only=True)
-	print(trade)
-
-
-def buyLRC(portion):
-	trade = client.buy(price=str(getBidPrice("LRC-USD")),
-		size=str(round(getAvailableUSD(portion) / getBidPrice("LRC-USD"), 6)),
-		order_type="limit",
-		product_id="LRC-USD",
-		post_only=True)
-	print(trade)
-
-
-# ------------------------------- Get-available functions ---------------------------------
-
-def get_currency(symbol):
-	currencies = get_currencies()
-	try:
-		return currencies.loc[symbol].to_dict()
-	except Exception as err:
-		print("could not retrieve currency in wallet")
-
-
-def get_currencies():
-	try:
-		ts = str(int(time.time()))
-		path_url = "/api/v3/brokerage/accounts"
-		signature = generate_signature(ts, "GET", path_url)
-		conn = http.client.HTTPSConnection("api.coinbase.com")
-		payload = ''
-		headers = {
-			"User-Agent": "LS",
-			"CB-ACCESS-KEY": cb_api_key,
-			"CB-ACCESS-TIMESTAMP": ts,
-			"CB-ACCESS-SIGN": signature,
-			"Content-Type": "application/json"}
-
-		conn.request("GET", path_url, payload, headers)
-		res = conn.getresponse()
-		data = res.read().decode("utf-8")
-		accounts = pd.DataFrame(json.loads(data))
-		accounts = pd.json_normalize(accounts.accounts)
-		accounts = accounts.drop(columns=["active", "available_balance.currency", "created_at",
-			"deleted_at", "default", "hold.currency", "hold.value", "name", "ready", "type", "updated_at"])
-		accounts = accounts.rename(columns={"currency": "name", "available_balance.value": "balance"})
-		accounts = accounts.set_index("name")
-		return accounts
-	except Exception as err:
-		print("could not retrieve currencies in wallet")
-
-
-def generate_signature(ts, method, url):
-	message = ts + method + url
-	return hmac.new(cb_api_secret.encode('utf-8'), message.encode('utf-8'), hashlib.sha256).hexdigest()
-
-
-def get_orders():
-	orders = client.get_orders()
-	for order in orders:
-		print(order)
 
 
 def append_order_to_csv(date, price, side):
@@ -344,36 +253,6 @@ def get_order_history():
 	except Exception as err:
 		print("CSV is empty or does not exist")
 
-
-def getAskPrice(symbolPair):
-	price = client.get_product_ticker(product_id=symbolPair)["ask"]
-	return (round(float(price) * 0.9995, 4))
-
-
-def getBidPrice(symbolPair):
-	price = client.get_product_ticker(product_id=symbolPair)["bid"]
-	return (round(float(price) * 1.0005, 4))
-
-
-def getAvailableBTC(portion):
-	accounts = client.get_accounts()
-	for account in accounts:
-		if (account["currency"] == "BTC"):
-			return (round(float(account["available"]) * portion, 5))
-
-
-def getAvailableLRC(portion):
-	accounts = client.get_accounts()
-	for account in accounts:
-		if (account["currency"] == "LRC"):
-			return (round(float(account["available"]) * portion, 6))
-
-
-def getAvailableUSD(portion):
-	accounts = client.get_accounts()
-	for account in accounts:
-		if (account["currency"] == "USD"):
-			return (round(float(account["available"]) * portion, 2))
 
 
 
