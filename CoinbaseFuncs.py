@@ -9,11 +9,12 @@ import http.client
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-from auth_cred import (api_secret, api_key, api_pass)
+from auth_cred import (cbp_api_secret, cbp_api_key, cbp_api_pass)
+from auth_cred import (cb_api_secret, cb_api_key)
 
 # Set url and authticate client
 url = "https://api.pro.coinbase.com"
-cbpClient = cbpro.AuthenticatedClient(api_key, api_secret, api_pass, api_url=url)
+cbpClient = cbpro.AuthenticatedClient(cbp_api_key, cbp_api_secret, cbp_api_pass, api_url=url)
 
 
 def cb_generate_signature(ts, method, url):

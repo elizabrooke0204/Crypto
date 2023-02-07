@@ -19,7 +19,6 @@ import threading
 import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import datetime
-from datetime import timedelta
 from colorama import Fore
 from colorama import Back
 from colorama import Style
@@ -28,7 +27,6 @@ from colorama import Style
 from HelperFuncs import *
 from KrakenFuncs import *
 from Contact import *
-from auth_cred import (api_secret, api_key, api_pass)
 
 fig, (ax1, ax2) = plt.subplots(2, gridspec_kw={"height_ratios": [2, 1]})
 fig.tight_layout()
@@ -75,7 +73,6 @@ class Bot(BoxLayout):
 	def run_strategy_rsi_bb(self, rates):
 		try:
 			# Get rates, high/low average, rsi values and bb bands
-			now = datetime.now()
 			ratesHl2 = pd.Series((rates["High"] + rates["Low"]).div(2).values, index=rates.index)
 			ratesRsi = get_rsi(ratesHl2, self.rsiPeriodLength)
 			(bbUpper, bbMiddle, bbLower) = get_bb(ratesHl2, self.bbPeriodLength, self.bbLevel)
@@ -137,8 +134,6 @@ class Bot(BoxLayout):
 	def analyze_rsi_bb(self, rates):
 		try:
 			print("Analyze thread started")
-			now = datetime.now()
-			
 			# Variable holders
 			bestDelta = 0.0
 			portion = 0.99
@@ -402,8 +397,7 @@ class Bot(BoxLayout):
 
 class MainApp(MDApp):
 	def build(self):
-		# Runs every designated amount of seconds
-		Clock.schedule_interval(lambda dt: self.update_screen(), 1)
+		Clock.schedule_interval(lambda dt: self.update_screen(), 5)
 		self.theme_cls.theme_style = "Dark"
 		self.theme_cls.primary_palette = "BlueGray"
 		Builder.load_file("Bot.kv")
