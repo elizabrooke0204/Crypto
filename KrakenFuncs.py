@@ -39,6 +39,11 @@ def kraken_get_balance(altSymbol):
 		return None
 
 
+def kraken_get_assets():
+	assets = requests.get('https://api.kraken.com/0/public/Assets').json()
+	return assets['result']
+
+
 def kraken_request(uri_path, data):
 	headers = {}
 	headers["API-Key"] = kraken_api_key
