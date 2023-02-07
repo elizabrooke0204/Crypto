@@ -285,7 +285,7 @@ class Bot(BoxLayout):
 
 			else:
 				print(Fore.RED +
-					"No adequate parameters found. Reattempting analysis next hour." +
+					"No adequate parameters found. Reattempting analysis next cycle." +
 					Style.RESET_ALL)
 
 		# Catches error in Analyze thread and prints to screen
@@ -293,10 +293,6 @@ class Bot(BoxLayout):
 			send_msg("ANALYZE-ERROR\nCheck to see if bot is functioning")
 			print(Fore.RED + "ANALYZE-ERROR." + Style.RESET_ALL)
 			print(err)
-
-
-	def update_symbol_pair(self):
-		self.ids.symbol_pair_var.text = symbol + "-" + market
 
 
 	def update_variables(self, rates):
@@ -424,7 +420,7 @@ class MainApp(MDApp):
 		else:
 			self.analyzeTime = time.strftime("%H")
 
-		self.root.update_symbol_pair()
+		self.root.ids.symbol_pair_var.text = symbol + "-" + market
 		self.root.run_strategy_rsi_bb(rates)
 		self.root.update_variables(rates)
 
