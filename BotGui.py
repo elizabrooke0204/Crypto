@@ -13,20 +13,22 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.garden.matplotlib.backend_kivyagg import FigureCanvasKivyAgg
 
 # Library imports
-import time
 import requests
 import threading
-import pandas as pd
+import time
 import matplotlib.pyplot as plt
-from datetime import datetime
+import pandas as pd
+from configparser import ConfigParser
 from colorama import Fore
 from colorama import Back
 from colorama import Style
+from datetime import datetime
 
 # File imports
-from HelperFuncs import *
-from KrakenFuncs import *
 from Contact import *
+from HelperFuncs import *
+from IndicatorFuncs import *
+from KrakenFuncs import *
 
 fig, (ax1, ax2) = plt.subplots(2, gridspec_kw={"height_ratios": [2, 1]})
 fig.tight_layout()
@@ -34,12 +36,15 @@ fig.subplots_adjust(left=0.027)
 Window.size = (1000, 700)
 
 # global variables initial parameters
-symbol = "BTC"
-altSymbol = "XXBT"
-market = "USD"
-altMarket = "ZUSD"
-timeSlice = 5
-stopLossPortion = 0.005
+config = ConfigParser()
+config.read("config.ini")
+
+symbol = config["settings"]["symbol"]
+altSymbol = config["settings"]["altSymbol"]
+market = config["settings"]["market"]
+altMarket = config["settings"]["altMarket"]
+timeSlice = int(config["settings"]["timeSlice"])
+stopLossPortion = float(config["settings"]["stopLossPortion"])
 
 
 class Bot(BoxLayout):
