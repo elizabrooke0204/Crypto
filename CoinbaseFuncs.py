@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+# DEPRECATED
+
 #Library imports
 import time
 import cbpro
