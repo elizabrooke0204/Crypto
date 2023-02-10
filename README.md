@@ -1,4 +1,3 @@
-
 # Crypto Trading Bot 
 
 This project is a single page application that analyzes a specified cryptocurrency trading pair, graphs market data, and automates buy and sell orders.
@@ -50,7 +49,7 @@ kraken_api_secret = "<YOUR_PRIVATE_KEY>"
 	-  After creating account and signing in, click your account icon in the top right corner of the page and select 'Manage your Google Account'.
 	- Next navigate to the 'Security' section using the navigation bar on the left side of the page.
 	- Under 'Signing in to Google' click 'App passwords' and generate a password on the next page after entering 'Select App' and 'Select device'.
-	- After generating a password save your email address and app password in 'auth_cred.py'	as string variables.
+	- After generating a password, save your email address and app password in 'auth_cred.py'	as string variables.
 	- Finally, identify your mobile phone carrier's MMS gateway address. Major US carriers can be found at Lifewire's website [Lifewire SMS and MMS Gateways](https://www.lifewire.com/sms-gateway-from-email-to-sms-text-message-2495456), other carriers will have to be searched for online. Save your phone number and carrier MMS gateway as string variable in 'auth_cred.py' in the format <phone_number@mms_address>.
 example: '1234567890@vzwpix.com'.
 ```python
@@ -64,6 +63,7 @@ phone_number = "<YOUR_PHONE_NUMBER>@<MMS_GATEWAY>"
 	- Please review Krakens note at the top of the page when entering the alternative asset codes in to 'altSymbol' and 'altMarket':
 	
 		> Asset codes starting with '**X**' represent **cryptocurrencies**, though this convention is no longer followed for newer coin listings.
+		>
 		> Asset codes starting with '**Z**' represent  **cash**.
 	- Enter regular asset codes in to 'symbol' and 'market', choose between 1, 5, 15, or 60 minutes for 'timeSlice', and pick your trailing stop-loss percentage in decimal form for 'stopLossPortion'.
 	- Example of 'config.ini' file trading in the bitcoin - US dollar (BTC-USD) market using 60-minute candlestick chart with a 3% trailing stop-loss.
