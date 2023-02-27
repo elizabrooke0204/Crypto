@@ -1,4 +1,29 @@
 #!/usr/bin/env python3
+"""
+Script for a cryptocurrency trading bot that renders a GUI built from the Kivy framework when ran.
+
+Attributes
+----------
+symbol : str
+	Symbol associated with the base currency of a trading pair.
+altSymbol : str
+	Alternative symbol associated with the base currency of a trading pair.
+market : str
+	Symbol associated with the quote currency of a trading pair.
+altMarket : str
+	Alternative symbol associated with the quote currency of a trading pair.
+timeSlice : int
+	Time span in minutes for each data point. Must be 1, 5, 15, or 60.
+stopLossPortion : float
+	Percentage of current price to set stop loss limit as decimal. Must be between 0.0 and 1.0.
+
+Classes
+-------
+Bot(BoxLayout)
+	Contains methods to implement trading strategy and update app with current data.
+MainApp(MDApp)
+	Constructs the layout and functionality of the application window. 
+"""
 
 # Kivy library imports
 from kivy.lang import Builder
@@ -48,6 +73,28 @@ stopLossPortion = float(config["settings"]["stopLossPortion"])
 
 
 class Bot(BoxLayout):
+	"""
+	Contains methods to implement trading strategy and update app with current data.
+
+	Methods
+	-------
+	__init__(self, **kwargs)
+		Initializes graphbox wideget.
+	run_strategy_rsi_bb(self, rates)
+		Implements a RSI, BB, StopLoss strategy.
+	analyze_rsi_bb(self, rates)
+		Analyzes most recent market data and updates bot settings with most efficient 
+		variable combination.
+	update_variables(self, rates)
+		Updates displayed variables and plots with newest data.
+	add_bb_plot(self, ratesHl2)
+		Adds BB data to subplot ax1.
+	add_cadles_plot(self, rates)
+		Adds open, high, low, close data to subplot ax1.
+	add_rsi_plot(self, ratesHl2)
+		Adds RSI data to subplot ax2.
+	"""
+
 	# sets properties with initial values
 	analyzeTime = StringProperty("00")
 	inSellPeriod = BooleanProperty(False)
@@ -59,6 +106,7 @@ class Bot(BoxLayout):
 	bbPeriodLength = NumericProperty(6)
 	bbLevel = NumericProperty(2.75)
 
+	# Sets stopLoss limits.
 	rates = get_historic_rates(symbol, timeSlice)
 	if float(kraken_get_balance(altMarket)) > (float(kraken_get_balance(altSymbol)) * rates["Close"].iloc[-1]):
 		stopLossUpper = rates["High"].iloc[-1] * (1.0 + (2 * stopLossPortion))
@@ -67,7 +115,12 @@ class Bot(BoxLayout):
 		stopLossLower = rates["Low"].iloc[-1] * (1.0 - (2 * stopLossPortion))
 		stopLossUpper = 0.0
 
+
 	def __init__(self, **kwargs):
+		"""
+		Initializes graphbox wideget.
+		"""
+
 		super().__init__(**kwargs)
 
 		# Adds graph box
@@ -76,6 +129,15 @@ class Bot(BoxLayout):
 
 
 	def run_strategy_rsi_bb(self, rates):
+		"""
+		Implements a relative-strength-index, bollinger-bands, stop-loss strategy.
+
+		Parameters
+		----------
+		rates : pandas.DataFrame
+			Rates of a cryptocurrency in chronological order.
+		"""
+
 		try:
 			# Get rates, high/low average, rsi values and bb bands
 			ratesHl2 = pd.Series((rates["High"] + rates["Low"]).div(2).values, index=rates.index)
@@ -137,6 +199,16 @@ class Bot(BoxLayout):
 
 
 	def analyze_rsi_bb(self, rates):
+		"""
+		Analyzes most recent market data and updates bot settings with most efficient 
+		variable combination.
+
+		Parameters
+		----------
+		rates : pandas.DataFrame
+			Rates of a cryptocurrency in chronological order.
+		"""
+
 		try:
 			print("Analyze thread started")
 			# Variable holders
@@ -184,8 +256,7 @@ class Bot(BoxLayout):
 								stopLossLower = 0.0
 								stopLossUpper = 0.0
 
-								# Parse through data and determine buy or sell times and prices
-								# Calculates endWallet
+								# Parse through data, determines buy or sell times and prices, and calculates endWallet
 								for i in range(len(dates)):
 									if not thisInSellPeriod:
 										if (ratesRsi[i] > thisRsiUpperBound) and (ratesHigh[i] > bbUpper[i]):
@@ -296,6 +367,15 @@ class Bot(BoxLayout):
 
 
 	def update_variables(self, rates):
+		"""
+		Updates displayed variables and plots with newest data.
+
+		Parameters
+		----------
+		rates : pandas.DataFrame
+			Rates of a cryptocurrency in chronological order.
+		"""
+
 		ratesHl2 = pd.Series((rates["High"] + rates["Low"]).div(2).values, index=rates.index)
 		ratesRsi = get_rsi(ratesHl2, self.rsiPeriodLength)
 		(bbUpper, bbMiddle, bbLower) = get_bb(ratesHl2, self.bbPeriodLength, self.bbLevel)
@@ -330,6 +410,15 @@ class Bot(BoxLayout):
 
 
 	def add_bb_plot(self, ratesHl2):
+		"""
+		Adds BB data to subplot ax1.
+		
+		Parameters
+		----------
+		ratesHl2 : pandas.Series
+			Rates of a cryptocurrency in chronological order.
+		"""
+
 		size = 150 - self.bbPeriodLength + 1
 		(bbUpper, bbMiddle, bbLower) = get_bb(ratesHl2, self.bbPeriodLength, self.bbLevel)
 		ax1.plot(bbUpper.tail(size), label="Bollinger Up", linewidth=1, c="b")
@@ -353,6 +442,15 @@ class Bot(BoxLayout):
 
 
 	def add_cadles_plot(self, rates):
+		"""
+		Adds open, high, low, close data to subplot ax1.
+
+		Parameters
+		----------
+		rates : pandas.DataFrame
+			Rates of a cryptocurrency in chronological order.
+		"""
+
 		size = 150 - self.bbPeriodLength + 1
 		rates = rates.tail(size)
 		down = rates[rates.Close < rates.Open]
@@ -369,6 +467,15 @@ class Bot(BoxLayout):
 
 
 	def add_rsi_plot(self, ratesHl2):
+		"""
+		Adds RSI data to subplot ax2.
+		
+		Parameters
+		----------
+		ratesHl2 : pandas.Series
+			Rates of a cryptocurrency in chronological order.
+		"""
+
 		size = 150 - self.bbPeriodLength + 1
 		rsi = get_rsi(ratesHl2, self.rsiPeriodLength)
 		ax2.plot(rsi.tail(size), label="RSI", c="black", linewidth=1)
@@ -401,7 +508,24 @@ class Bot(BoxLayout):
 
 
 class MainApp(MDApp):
+	"""
+	Contains methods to implement trading strategy and update app with current data.
+
+	Methods
+	-------
+	def build(self)
+		Sets the Kicy clock interval and loads the layout from Bot.kv file.
+	def on_start(self, **kwargs)
+		Sets initial Bot parameters.
+	update_screen(self)
+		Runs strategy and updates screen with most recent data.
+	"""
+
 	def build(self):
+		"""
+		Sets the Kicy clock interval and loads the layout from Bot.kv file.
+		"""
+
 		Clock.schedule_interval(lambda dt: self.update_screen(), 5)
 		self.theme_cls.theme_style = "Dark"
 		self.theme_cls.primary_palette = "BlueGray"
@@ -410,6 +534,10 @@ class MainApp(MDApp):
 
 
 	def on_start(self, **kwargs):
+		"""
+		Sets initial Bot parameters.
+		"""
+
 		rates = get_historic_rates(symbol, timeSlice).tail(150)
 
 		if timeSlice <= 5:
@@ -425,30 +553,34 @@ class MainApp(MDApp):
 
 
 	def update_screen(self):
-			try:
-				rates = get_historic_rates(symbol, timeSlice).tail(150)
-				self.root.run_strategy_rsi_bb(rates)
-				self.root.update_variables(rates)
+		"""
+		Runs strategy and updates screen with most recent data.
+		"""
 
-				# ANALYZE THREAD
-				if timeSlice <=5:
-					if int(time.strftime("%-M")) == self.analyzeTime:
-						self.analyzeTime += 20
-						if self.analyzeTime >= 60:
-							self.analyzeTime = self.analyzeTime - 60
-						analyzeThread = threading.Thread(target=self.root.analyze_rsi_bb, args=(rates,), daemon=True)
-						analyzeThread.start()
+		try:
+			rates = get_historic_rates(symbol, timeSlice).tail(150)
+			self.root.run_strategy_rsi_bb(rates)
+			self.root.update_variables(rates)
 
-				else:	
-					if time.strftime("%H") != self.analyzeTime:
-						self.analyzeTime = time.strftime("%H")
-						analyzeThread = threading.Thread(target=self.root.analyze_rsi_bb, args=(rates,), daemon=True)
-						analyzeThread.start()
+			# ANALYZE THREAD
+			if timeSlice <=5:
+				if int(time.strftime("%-M")) == self.analyzeTime:
+					self.analyzeTime += 20
+					if self.analyzeTime >= 60:
+						self.analyzeTime = self.analyzeTime - 60
+					analyzeThread = threading.Thread(target=self.root.analyze_rsi_bb, args=(rates,), daemon=True)
+					analyzeThread.start()
 
-			except Exception as err:
-				send_msg("UPDATE-SCREEN-ERROR\nCheck to see if bot is functioning")
-				print(Fore.RED + "UPDATE-SCREEN-ERROR." + Style.RESET_ALL + "\n")
-				print(err)
+			else:	
+				if time.strftime("%H") != self.analyzeTime:
+					self.analyzeTime = time.strftime("%H")
+					analyzeThread = threading.Thread(target=self.root.analyze_rsi_bb, args=(rates,), daemon=True)
+					analyzeThread.start()
+
+		except Exception as err:
+			send_msg("UPDATE-SCREEN-ERROR\nCheck to see if bot is functioning")
+			print(Fore.RED + "UPDATE-SCREEN-ERROR." + Style.RESET_ALL + "\n")
+			print(err)
 
 
 if __name__ == "__main__":

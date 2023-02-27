@@ -1,28 +1,51 @@
 #!/usr/bin/env python3
+"""
+Script to manually test strategy with different parameter combintations and data sets.
 
-#Library imports
+Functions
+---------
+analyze_rsi_bb(symbol, timeSlice, portion, stopLossPortion)
+	Analyzes most recent market data and prints most profitable parameter combinations to terminal.
+test_rsi_bb_parameters(symbol, timeSlice, rsiPeriodLength, rsiUpperBound, rsiLowerBound, bbPeriodLength, bbLevel)
+	Tests specific combination and prints buy and sell actions that would have occurred with the given parameters.
+multiprocess_rsi_bb(symbol)
+	Multiprocesses "analyze_rsi_bb" for different time-slice or stop-loss parameters to compare strategy effectiveness.
+"""
+
+# Library imports
 import time
 import requests
 import threading
 import multiprocessing
-import cbpro
 import pandas as pd
 from datetime import datetime, timedelta
 
-#File imports
+# File imports
 from HelperFuncs import *
-from SymbolList import symList
-from auth_cred import (api_secret, api_key, api_pass)
 
-# Set url and authticate client
-url = "https://api.pro.coinbase.com"
-#url = "https://api-public.sandbox.pro.coinbase.com"
-client = cbpro.AuthenticatedClient(api_key, api_secret, api_pass, api_url=url)
 
 # ------------------------------------ Analyze RSI BB -------------------------------------
 
 # Analyze crpyto for current most accurate parameter combination
 def analyze_rsi_bb(symbol, timeSlice, portion, stopLossPortion):
+	"""
+	Analyzes most recent market data and prints most profitable parameter combinations to 
+	terminal.
+
+	Parameters
+	----------
+	symbol : str
+		Symbol associated with the base currency of a trading pair.
+	timeSlice : int
+		Time span in minutes for each data point. Must be 1, 5, 15, or 60.
+	portion : float
+		Percentage of asset be used in buy or sell action as decimal. Must be between 0.0 
+		and 1.0.
+	stopLossPortion : float
+		Percentage of current price to set stop loss limit as decimal. Must be between 0.0 
+		and 1.0.
+	"""
+
 	# Variable holders
 	inSellPeriod = False
 	inBuyPeriod = False
@@ -67,8 +90,8 @@ def analyze_rsi_bb(symbol, timeSlice, portion, stopLossPortion):
 						bbUpper = bbUpperSeries.tolist()[(bbPeriodLength - 1):]
 						bbMiddle = bbMiddleSeries.tolist()[(bbPeriodLength - 1):]
 						bbLower = bbLowerSeries.tolist()[(bbPeriodLength - 1):]
-						stopLossUpper = 0.0
-						stopLossLower = 0.0
+						stopLossUpper = bbMiddle[0] * (1.0 + stopLossPortion)
+						stopLossLower = bbMiddle[0] * (1.0 - stopLossPortion)
 
 						# Parse through data and determine buy or sell times and prices
 						# Calculates endWallet
@@ -123,7 +146,7 @@ def analyze_rsi_bb(symbol, timeSlice, portion, stopLossPortion):
 						actionGainLoss = (walletEnd - walletStart) / walletStart
 						delta = actionGainLoss - noActionGainLoss
 
-						if (delta >= bestDelta):
+						if (delta > 0.0) and (delta >= bestDelta):
 							bestDelta = delta
 							currentTopParameters.append([actionGainLoss, delta, timeSlice, rsiPeriodLength, rsiUpperBound, rsiLowerBound, bbPeriodLength, bbLevel])
 
@@ -148,52 +171,37 @@ def analyze_rsi_bb(symbol, timeSlice, portion, stopLossPortion):
 		print(parameters)
 
 
-def get_price_differences(symbol):
-	rates5min = get_historic_rates(symbol, "5min")
-	rates60min = get_historic_rates(symbol, "60min")
-
-	series5minHl2 = pd.Series((rates5min["High"] + rates5min["Low"]).div(2).values, index=rates5min.index)
-	series60minHl2 = pd.Series((rates60min["High"] + rates60min["Low"]).div(2).values, index=rates60min.index)
-
-	list5min = series5minHl2.tolist()
-	list60min = series60minHl2.tolist()
-
-	now = list5min[-1]
-
-	return ([symbol, get_delta(now, list5min[-2]), get_delta(now, list5min[-7]),
-		get_delta(now, list5min[-13]), get_delta(now, list5min[-73]),
-		get_delta(now, list5min[-145]), get_delta(now, list5min[-289]),
-		get_delta(now, list60min[-120]), get_delta(now, list60min[-240]),
-		get_delta(now, list60min[-480]), get_delta(now, list60min[-720])])
-
-
-def get_all_price_differences():
-	data = pd.DataFrame(client.get_products())
-	dataList = data["id"].tolist()
-
-	deltaList = []
-
-	for sym in symList:
-		try:
-			#deltaList.append
-			print(get_price_differences(sym))
-			time.sleep(30)
-
-		except Exception as err:
-			print("not in list")
-			time.sleep(30)
-
-	for delta in deltaList:
-		print(delta)
-
-	
-def get_delta(priceNow, priceOld):
-	return round((priceNow - priceOld) * 100.0 / priceOld, 2)
-
 # ------------------------------------- Test RSI BB ---------------------------------------
 
 # Test specific most efficient parameters deteremined by analyze_rsi_bb()
 def test_rsi_bb_parameters(symbol, timeSlice, rsiPeriodLength, rsiUpperBound, rsiLowerBound, bbPeriodLength, bbLevel):
+	"""
+	Tests specific combination and prints buy and sell actions that would have occurred 
+	with the given parameters.
+
+	Parameters
+	----------
+	symbol : str
+		Symbol associated with the base currency of a trading pair.
+	timeSlice : int
+		Time span in minutes for each data point. Must be 1, 5, 15, or 60.
+	rsiPeriodLength : int
+		Amount of datapoints used to calculate relative-strength-index. Must be less than 
+		amount of data points.
+	rsiUpperBound : int
+		Upper threshold for overbought range. Must be between 50 and 100, recommended 
+		between 60 and 90.
+	rsiLowerBound : int
+		Lower threshold for oversold range. Must be between 0 and 50, recommended between 
+		10 and 40.
+	bbPeriodLength : int
+		Amount of datapoints used to calculate bollinger-bands. Must be less than amount 
+		of data points.
+	bbLevel : float
+		Standard deviation level used to calculate upper and lower bolling-bands. 
+		Must be greater than 0.0, recommended between 1.0 and 3.0.
+	"""
+
 	# Variable holders
 	inSellPeriod = False
 	inBuyPeriod = False
@@ -222,9 +230,9 @@ def test_rsi_bb_parameters(symbol, timeSlice, rsiPeriodLength, rsiUpperBound, rs
 	cryptoEnd = cryptoStart
 	portion = 0.99
 
-	stopLossLower = 0.0
-	stopLossUpper = 0.0
-	stopLossPortion = 0.025
+	stopLossPortion = 0.008
+	stopLossUpper = bbMiddle[0] * (1.0 + stopLossPortion)
+	stopLossLower = bbMiddle[0] * (1.0 - stopLossPortion)
 
 	# Parse through data and determine buy or sell times and prices
 	print("from:" + dates[0])
@@ -297,11 +305,21 @@ def test_rsi_bb_parameters(symbol, timeSlice, rsiPeriodLength, rsiUpperBound, rs
 # ----------------------------- Multiprocess-Analyze RSI BB -------------------------------
 
 def multiprocess_rsi_bb(symbol):
+	"""
+	Multiprocesses "analyze_rsi_bb" for different time-slice or stop-loss parameters to 
+	compare strategy effectiveness.
+
+	Parameters
+	----------
+	symbol : str
+		Symbol associated with the base currency of a trading pair.
+	"""
+
 	portion = 0.99
-	t1 = multiprocessing.Process(target=analyze_rsi_bb, args=(symbol, 5, portion, 0.010))
-	t2 = multiprocessing.Process(target=analyze_rsi_bb, args=(symbol, 5, portion, 0.015))
-	t3 = multiprocessing.Process(target=analyze_rsi_bb, args=(symbol, 15, portion, 0.010))
-	t4 = multiprocessing.Process(target=analyze_rsi_bb, args=(symbol, 15, portion, 0.015))
+	t1 = multiprocessing.Process(target=analyze_rsi_bb, args=(symbol, 60, portion, 0.014))
+	t2 = multiprocessing.Process(target=analyze_rsi_bb, args=(symbol, 60, portion, 0.018))
+	t3 = multiprocessing.Process(target=analyze_rsi_bb, args=(symbol, 60, portion, 0.022))
+	t4 = multiprocessing.Process(target=analyze_rsi_bb, args=(symbol, 60, portion, 0.026))
 
 	t1.start()
 	t2.start()
@@ -314,33 +332,8 @@ def multiprocess_rsi_bb(symbol):
 	t4.join()
 
 
-def test_all():
-	for sym in symList:
-		print(sym)
-		analyze_rsi_bb(sym, ["15min"], 0.99)
-
-def multiprocess_test_all():
-
-	for i in range(0, 56, 2):
-		t1 = multiprocessing.Process(target=analyze_rsi_bb, args=(symList[i], 15, 0.99))
-		t2 = multiprocessing.Process(target=analyze_rsi_bb, args=(symList[i + 1], 15, 0.99))
-		
-		t1.start()
-		t2.start()
-
-		t1.join()
-		t2.join()
-
-
 if __name__ == "__main__":
 	#analyze_rsi_bb("BTC", 60, 0.995, 0.025)
-	test_rsi_bb_parameters("BTC", 60, 4, 82, 16, 4, 3.0)
+	test_rsi_bb_parameters("BTC", 60, 3, 82, 12, 3, 3.25)
 	#multiprocess_rsi_bb("BTC")
-
-	#multiprocess_test_all()
-	#print(get_price_differences("LINK"))
-	#get_all_price_differences()
-
-	#websocket()
-	#get_orders()
 

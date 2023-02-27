@@ -1,20 +1,62 @@
 #!/usr/bin/env python3
+"""
+Module of functions that retrieve market rates and calculate indicator data.
 
-#Library imports
-import requests
+Functions
+---------
+get_historic_rates(symbol, timeSlice)
+	Given a cryptocurrency symbol and time-slice value, returns historic rates.
+get_ema(rates, periodLength)
+	Calculates and returns the exponential-moving-average of rates.
+get_sma(rates, periodLength)
+	Calculates and returns the simple-moving-average of rates.
+get_macd(rates, periodShort, periodLong, periodEma)
+	Calculates and returns the moving-average-convergence-divergence of rates.
+get_rsi(rates, periodLength)
+	Caluculates and returns the relatvie-strength-index of rates.
+get_ichimoku(rates, periodConversion, periodBase, periodLeading)
+	Calculates and returns the ichimoku-cloud of rates.
+get_fibonacci_retrace()
+	TODO - Calculates and returns the fibonacci-retrace of rates.
+get_obv()
+	TODO - Calculates and returns the on-balance-volume of rates.
+get_vwap(rates)
+	Calculates and returns the volume-weighted-average-price of rates.
+get_bb(rates, periodLength, standardDevLevel)
+	Calculates and returns the bollinger-bands of rates.
+"""
+
+# Library imports
 import csv
-import json
 import http.client
-import pandas as pd
+import json
+import requests
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 from datetime import datetime
-from KrakenFuncs import *
 
 
-# -------------------------------- get historic rates ----------------------------------
+# ---------------------------------- Historic rates ------------------------------------
 
 def get_historic_rates(symbol, timeSlice):
+	"""
+	Given a cryptocurrency symbol and time-slice value, returns historic rates.
+
+	Parameters
+	----------
+	symbol : str
+		Symbol associated with the quote currency of a trading pair.
+	timeSlice : int
+		Time span in minutes for each data point. Must be 1, 5, 15, or 60.
+
+	Returns
+	-------
+	pandas.DataFrame
+		Most recent 300 data points for the given symbol and time-slice amount as 
+		["Date", "Low", "High", "Open", "Close", "Volume"].
+	"""
+
 	granularity = timeSlice * 60
 	conn = http.client.HTTPSConnection("api.exchange.coinbase.com")
 	payload = ""
@@ -32,16 +74,76 @@ def get_historic_rates(symbol, timeSlice):
 
 # --------------------------------- Trend indicators -----------------------------------
 
-def get_sma(rates, periodLength):
-	return rates.rolling(periodLength).mean()
-
 def get_ema(rates, periodLength):
+	"""
+	Calculates and returns the exponential-moving-average of rates.
+
+	Parameters
+	----------
+	rates : pandas.DataFrame or pandas.Series
+		Rates of a cryptocurrency in chronological order.
+	periodLength : int
+		Amount of datapoints used to calculate exponential-moving-average. Must be less 
+		than amount of data points.
+
+
+	Returns
+	-------
+	pandas.DataFrame or pandas.Series
+		Exponential-moving-average values for the given rates and period length.
+	"""
+
 	return rates.ewm(span=periodLength, adjust=False).mean()
+
+
+def get_sma(rates, periodLength):
+	"""
+	Calculates and returns the simple-moving-average of rates.
+
+	Parameters
+	----------
+	rates : pandas.DataFrame or pandas.Series
+		Rates of a cryptocurrency in chronological order.
+	periodLength : int
+		Amount of datapoints used to calculate simple-moving-average. Must be less than 
+		amount of data points.
+
+
+	Returns
+	-------
+	pandas.DataFrame or pandas.Series
+		Simple-moving-average values for the given rates and period length.
+	"""
+
+	return rates.rolling(periodLength).mean()
 
 
 # ------------------------- Momentum indicators (oscillators) --------------------------
 
 def get_macd(rates, periodShort, periodLong, periodEma):
+	"""
+	Calculates and returns the moving-average-convergence-divergence of rates.
+
+	Parameters
+	----------
+	rates : pandas.DataFrame or pandas.Series
+		Rates of a cryptocurrency in chronological order.
+	periodShort : int
+		Amount of datapoints used to calculate the short-exponential-moving-average. Must 
+		be less than amount of data points.
+	periodLong : int
+		Amount of datapoints used to calculate the long-exponential-moving-average. Must 
+		be less than amount of data points.
+	periodEma : int
+		Amount of datapoints used to calculate the exponential-moving-average of the 
+		moving-average-convergence-divergence data. Must be less than amount of data points.
+
+	Returns
+	-------
+	pandas.DataFrame or pandas.Series
+		Moving-average-convergence-divergence values for the given rates and period lengths.
+	"""
+
 	emaShort = get_ema(rates, periodShort)
 	emaLong = get_ema(rates, periodLong)
 	macd = emaShort - emaLong
@@ -50,6 +152,23 @@ def get_macd(rates, periodShort, periodLong, periodEma):
 
 
 def get_rsi(rates, periodLength):
+	"""
+	Caluculates and returns the relatvie-strength-index of rates.
+
+	Parameters
+	----------
+	rates : pandas.Series
+		Rates of a cryptocurrency in chronological order.
+	periodLength : int
+		Amount of datapoints used to calculate the relative-strength-index. Must be less 
+		than amount of data points.
+
+	Returns
+	-------
+	pandas.Series
+		Relative-strength-index values for the given rates and period length.
+	"""
+
 	rsiValues = []
 	currentPrice = 0.0
 	previousPrice = 0.0
@@ -104,7 +223,31 @@ def get_rsi(rates, periodLength):
 
 # ---------------------- Trend/Momentum indicators (oscillators) -----------------------
 
-def get_ichimoku(rates, conversionPeriod, basePeriod, leadingPeriod):
+def get_ichimoku(rates, periodConversion, periodBase, periodLeading):
+	"""
+	Calculates and returns the ichimoku-cloud of rates.
+
+	Parameters
+	----------
+	rates : pandas.DataFrame
+		Rates of a cryptocurrency in chronological order.
+	periodConversion : int
+		Amount of datapoints used to calculate the conversion line and leading-span-A data 
+		points. Must be less than amount of data points.
+	periodBase : int
+		Amount of datapoints used to calculate the base line and leading-span-A data 
+		points. Must be less than amount of data points.
+	periodLeading : int
+		Amount of datapoints used to calculate the leading-span-B data points. Must be 
+		less than amount of data points.
+
+	Returns
+	-------
+	tuple of (pandas.Series, pandas.Series, pandas.Series, pandas.Series, pandas.Series)
+		Tuple of itchimoku cloud values for the given rates and period lengths as 
+		(conversionLine, baseLine, leadingSpanA, leadingSpanB, chikouSpan)
+	"""
+
 	futureDates = []
 	blankValues = []
 	displace = 26
@@ -120,15 +263,15 @@ def get_ichimoku(rates, conversionPeriod, basePeriod, leadingPeriod):
 	futureDates = pd.Series(blankValues, index=futureDates)
 
 	# Conversion Line: Tenkan-sen
-	conversionPeriodHigh = rates["High"].rolling(window=conversionPeriod).max()
-	conversionPeriodLow = rates["Low"].rolling(window=conversionPeriod).min()
-	conversionLine = (conversionPeriodHigh + conversionPeriodLow) / 2
+	periodConversionHigh = rates["High"].rolling(window=periodConversion).max()
+	periodConversionLow = rates["Low"].rolling(window=periodConversion).min()
+	conversionLine = (periodConversionHigh + periodConversionLow) / 2
 	conversionLine.name = "values"
 
 	# Base Line: Kijun-sen
-	basePeriodHigh = rates["High"].rolling(window=basePeriod).max()
-	basePeriodLow = rates["Low"].rolling(window=basePeriod).min()
-	baseLine = (basePeriodHigh + basePeriodLow) / 2
+	periodBaseHigh = rates["High"].rolling(window=periodBase).max()
+	periodBaseLow = rates["Low"].rolling(window=periodBase).min()
+	baseLine = (periodBaseHigh + periodBaseLow) / 2
 	baseLine.name = "values"
 
 	# Leading Span A: Senkou Span A
@@ -137,32 +280,52 @@ def get_ichimoku(rates, conversionPeriod, basePeriod, leadingPeriod):
 	leadingSpanA = leadingSpanA.append(futureDates).shift(displace)
 
 	# Leading Span B: Senkou Span B
-	leadingPeriodHigh = rates["High"].rolling(window=leadingPeriod).max()
-	leadingPeriodLow = rates["Low"].rolling(window=leadingPeriod).min()
-	leadingSpanB = (leadingPeriodHigh + leadingPeriodLow) / 2
+	periodLeadingHigh = rates["High"].rolling(window=periodLeading).max()
+	periodLeadingLow = rates["Low"].rolling(window=periodLeading).min()
+	leadingSpanB = (periodLeadingHigh + periodLeadingLow) / 2
 	leadingSpanB.name = "values"
 	leadingSpanB = leadingSpanB.append(futureDates).shift(displace)
 
 	# The most current closing price plotted 22 time periods behind
-	chikou_span = rates["Close"].shift(-22)
-	chikou_span.name = "values"
+	chikouSpan = rates["Close"].shift(-22)
+	chikouSpan.name = "values"
 
-	return (conversionLine, baseLine, leadingSpanA, leadingSpanB, chikou_span)
+	return (conversionLine, baseLine, leadingSpanA, leadingSpanB, chikouSpan)
 
 
 # ------------------------------ Technical indicators ----------------------------------
 
 def get_fibonacci_retrace():
+	"""
+	TODO - Calculates and returns the fibonacci-retrace of rates.
+	"""
 	pass
 
 
 # -------------------------------- Volume indicators -----------------------------------
 
 def get_obv():
+	"""
+	TODO - Calculates and returns the on-balance-volume of rates.
+	"""
 	pass
 
 
 def get_vwap(rates):
+	"""
+	Calculates and returns the volume-weighted-average-price of rates.
+
+	Parameters
+	----------
+	rates : pandas.DataFrame
+		Rates of a cryptocurrency in chronological order.
+
+	Returns
+	-------
+	pandas.Series
+		Volume-weighted-average-price values for the given rates and period length.
+	"""
+
 	volume = rates["Volume"].values
 	hlc3 = (rates["High"] + rates["Low"] + rates["Close"]).div(3).values
 	vwap = ((hlc3 * volume).cumsum() / volume.cumsum())
@@ -172,53 +335,30 @@ def get_vwap(rates):
 # ------------------------------- Volatility indicators --------------------------------
 
 def get_bb(rates, periodLength, standardDevLevel):
+	"""
+	Calculates and returns the bollinger-bands of rates.
+
+	Parameters
+	----------
+	rates : pandas.DataFrame
+		Rates of a cryptocurrency in chronological order.
+	periodLength : int
+		Amount of datapoints used to calculate bollinger-bands. Must be less than amount 
+		of data points.
+	standardDevLevel : int
+		Standard deviation level used to calculate rolling standard deviation.
+
+	Returns
+	-------
+	tuple of (pandas.Series, pandas.Series, pandas.Series)
+		Tuple of bollinger-bands values for the given rates, period length, and deviation 
+		level as (bbUpper, bbMiddle, bbLower).
+	"""
+
 	standardDev = rates.rolling(periodLength).std()
 	bbMiddle = get_sma(rates, periodLength)
 	bbUpper = bbMiddle + (standardDev * standardDevLevel)
 	bbLower = bbMiddle - (standardDev * standardDevLevel)
 	return(bbUpper, bbMiddle, bbLower)
 
-
-# --------------------------------- Plot indicators ------------------------------------
-
-def plot_bb(rates, bbUpper, bbMiddle, bbLower):
-	plt.plot(bbUpper, label="Bollinger Up", c="b")
-	plt.plot(bbMiddle, label="Bollinger Middle", c="black")
-	plt.plot(bbLower, label="Bollinger Down", c="b")
-	plt.plot(rates, label="Rates", c="g")
-	plt.legend()
-	plt.xticks(np.arange(0, len(rates) + 1, 20), rotation=10)
-	return plt
-
-
-def plot_inchimoku(conversionLine, baseLine, leadingSpanA, leadingSpanB, chikou_span):
-	plt.plot(conversionLine, label="tenkan-sen", c="b")
-	plt.plot(baseLine, label="kijun_sen", c="r")
-	plt.plot(leadingSpanA, label="senkou span-A", c="purple")
-	plt.plot(leadingSpanB, label="senkou span-B", c="orange")
-	plt.plot(chikou_span, label="chikou-span", c="g")
-	plt.fill_between(leadingSpanA.index, leadingSpanA, leadingSpanB, facecolor="grey")
-	plt.legend()
-	return plt
-
-
-def plot_macd(macd, emaMacd):
-	plt.plot(macd, label="macd", c="black")
-	plt.plot(emaMacd, label="signal", c="r")
-	plt.legend()
-	return plt
-
-
-def plot_vwap(rates, vwap):
-	plt.plot(vwap, label="VWAP", c="g")
-	plt.plot(rates, label="Rates", c="b")
-	plt.legend()
-	return plt
-
-
-def plot_rsi(rsi, rsiUpperBound, rsiLowerBound):
-	plt.plot(rsi, label="RSI", c="r")
-	plt.axhline(y=rsiUpperBound, color='r', linestyle='--')
-	plt.axhline(y=rsiLowerBound, color='r', linestyle='--')
-	return plt
 

@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
+"""
+DEPRECATED MODULE
+"""
 
-# DEPRECATED
-
-#Library imports
+# Library imports
 import time
 import cbpro
 import csv
@@ -62,7 +63,7 @@ def cbp_buy_LRC(portion):
 	print(trade)
 
 
-# ------------------------------------ Get-Functions -------------------------------------
+# ------------------------------------ Get functions -------------------------------------
 
 def cbp_get_ask_price(symbolPair):
 	price = cbpClient.get_product_ticker(product_id=symbolPair)["ask"]
