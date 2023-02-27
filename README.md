@@ -27,7 +27,7 @@ Please consult the following articles on Investopedia's website if you would lik
 ```
 git clone https://github.com/BrockBasil/Crypto.git
 ```
-2. Create a new file named 'auth_cred.py' and save it inside the Crypto folder. This will hold the credentials needed to connect to the various APIs.
+2. Create a new file named 'auth_cred.py' and save it inside the 'Crypto' folder. This will hold the credentials needed to connect to the various APIs.
 
 3. Create Kraken account and API key.
 	- Navigate to Kraken's website at [Kraken](https://www.kraken.com/) and create an account. Kraken provides further assistance for account setup at [Account Setup - Kraken](https://support.kraken.com/hc/en-us/articles/226090548-How-to-create-an-account-on-Kraken).
@@ -48,7 +48,7 @@ kraken_api_secret = "<YOUR_PRIVATE_KEY>"
 	- Navigate to Google's website at [Gmail Account Setup](https://accounts.google.com/signup/v2/webcreateaccount?biz=false&cc=US&continue=https%3A%2F%2Fmail.google.com%2Fmail%2Fu%2F0%2F&dsh=S1074751825%3A1675891081117751&emr=1&flowEntry=SignUp&flowName=GlifWebSignIn&followup=https%3A%2F%2Fmail.google.com%2Fmail%2Fu%2F0%2F&ifkv=AWnogHfIJZsjYmsdrz2_4_skT0VDbQAPssPrmrL2pezBK9cppfPuutqTv9dX-kOlhr00sa0_mzRJcA&osid=1&service=mail) to create a Gmail account that will be used to send messages.
 	-  After creating account and signing in, click your account icon in the top right corner of the page and select 'Manage your Google Account'.
 	- Next navigate to the 'Security' section using the navigation bar on the left side of the page.
-	- Under 'Signing in to Google' click 'App passwords' and generate a password on the next page after entering 'Select App' and 'Select device'.
+	- Under 'Signing into Google' click 'App passwords' and generate a password on the next page after entering 'Select App' and 'Select device'.
 	- After generating a password, save your email address and app password in 'auth_cred.py'	as string variables.
 	- Finally, identify your mobile phone carrier's MMS gateway address. Major US carriers can be found at Lifewire's website [Lifewire SMS and MMS Gateways](https://www.lifewire.com/sms-gateway-from-email-to-sms-text-message-2495456), other carriers will have to be searched for online. Save your phone number and carrier MMS gateway as string variable in 'auth_cred.py' in the format <phone_number@mms_address>.
 example: '1234567890@vzwpix.com'.
@@ -60,12 +60,12 @@ phone_number = "<YOUR_PHONE_NUMBER>@<MMS_GATEWAY>"
 
 ## Configure and Run
 1. Open the 'config.ini' file to enter your preferred market information by following Kraken's symbol (asset code) naming convention found at [Kraken Asset Codes](https://support.kraken.com/hc/en-us/articles/360001185506-How-to-interpret-asset-codes).
-	- Please review Krakens note at the top of the page when entering the alternative asset codes in to 'altSymbol' and 'altMarket':
+	- Please review Krakens note at the top of the page when entering the alternative asset codes into 'altSymbol' and 'altMarket':
 	
 		> Asset codes starting with '**X**' represent **cryptocurrencies**, though this convention is no longer followed for newer coin listings.
 		>
 		> Asset codes starting with '**Z**' represent  **cash**.
-	- Enter regular asset codes in to 'symbol' and 'market', choose between 1, 5, 15, or 60 minutes for 'timeSlice', and pick your trailing stop-loss percentage in decimal form for 'stopLossPortion'.
+	- Enter regular asset codes into 'symbol' and 'market', choose between 1, 5, 15, or 60 minutes for 'timeSlice', and pick your trailing stop-loss percentage in decimal form for 'stopLossPortion'.
 	- Example of 'config.ini' file trading in the bitcoin - US dollar (BTC-USD) market using 60-minute candlestick chart with a 3% trailing stop-loss.
 ```ini
 [settings]
