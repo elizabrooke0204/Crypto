@@ -153,7 +153,7 @@ class Bot(BoxLayout):
 			else:
 				if (ratesRsi.iloc[-1] <= self.rsiUpperBound) and (rates["High"].iloc[-1] <= bbUpper.iloc[-1]):
 					if self.stopLossUpper == 0.0:
-						create_order(rates["Close"].iloc[-1], "sell", altSymbol, altMarket)
+						create_order(rates["Close"].iloc[-1], "sell", altSymbol, altMarket, market)
 						self.stopLossUpper = max(bbMiddle.iloc[-1], rates["High"].iloc[-1]) * (1.0 + stopLossPortion)
 					else:
 						print(Fore.RED + "***double-sell***" + Style.RESET_ALL)
@@ -168,7 +168,7 @@ class Bot(BoxLayout):
 			else:
 				if (ratesRsi.iloc[-1] >= self.rsiLowerBound) and (rates["Low"].iloc[-1] >= bbLower.iloc[-1]):
 					if self.stopLossLower == 0.0:
-						create_order(rates["Close"].iloc[-1], "buy", altSymbol, altMarket)
+						create_order(rates["Close"].iloc[-1], "buy", altSymbol, altMarket, market)
 						self.stopLossLower = min(bbMiddle.iloc[-1], rates["Low"].iloc[-1]) * (1.0 - stopLossPortion)
 					else:
 						print(Fore.RED + "***double-buy***" + Style.RESET_ALL)
@@ -179,7 +179,7 @@ class Bot(BoxLayout):
 				if (min(bbMiddle.iloc[-2], rates["Low"].iloc[-2]) * (1.0 - stopLossPortion)) > self.stopLossLower:
 					self.stopLossLower = min(bbMiddle.iloc[-2], rates["Low"].iloc[-2]) * (1.0 - stopLossPortion)
 				if rates["Low"].iloc[-1] < self.stopLossLower:
-					create_order(rates["Close"].iloc[-1], "sell", altSymbol, altMarket)
+					create_order(rates["Close"].iloc[-1], "sell", altSymbol, altMarket, market)
 					self.stopLossUpper = max(bbMiddle.iloc[-1], rates["High"].iloc[-1]) * (1.0 + stopLossPortion)
 					self.stopLossLower = 0.0
 
@@ -187,7 +187,7 @@ class Bot(BoxLayout):
 				if (max(bbMiddle.iloc[-2], rates["High"].iloc[-2]) * (1.0 + stopLossPortion)) < self.stopLossUpper:
 					self.stopLossUpper = max(bbMiddle.iloc[-2], rates["High"].iloc[-2]) * (1.0 + stopLossPortion)
 				if rates["High"].iloc[-1] > self.stopLossUpper:
-					create_order(rates["Close"].iloc[-1], "buy", altSymbol, altMarket)
+					create_order(rates["Close"].iloc[-1], "buy", altSymbol, altMarket, market)
 					self.stopLossLower = min(bbMiddle.iloc[-1], rates["Low"].iloc[-1]) * (1.0 - stopLossPortion)
 					self.stopLossUpper = 0.0
 

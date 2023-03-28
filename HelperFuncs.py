@@ -27,7 +27,7 @@ from KrakenFuncs import *
 
 # ------------------------------- Bot-helper functions ---------------------------------
 
-def create_order(price, side, altSymbol, altMarket):
+def create_order(price, side, altSymbol, altMarket, market):
 	"""
 	Places a market order. 
 
@@ -47,7 +47,7 @@ def create_order(price, side, altSymbol, altMarket):
 	"""
 
 	now = datetime.now()
-	print(kraken_order(price, side, altSymbol, altMarket))
+	print(kraken_order(price, side, altSymbol, altMarket, market))
 	print(Fore.RED + "---" + side + " at {}---".format(now) + Style.RESET_ALL)
 	send_msg(side + " - " + str(price))
 	append_order_to_csv(now.strftime("%m/%d - %H:%M:%S"), price, side)

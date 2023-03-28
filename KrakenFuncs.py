@@ -31,7 +31,7 @@ from auth_cred import (kraken_api_secret, kraken_api_key)
 
 # ---------------------------------- Account functions ------------------------------------	
 
-def kraken_order(price, side, altSymbol, altMarket):
+def kraken_order(price, side, altSymbol, altMarket, market):
 	"""
 	Places a market order on Kraken's exhchange and returns the server's response.
 
@@ -62,7 +62,7 @@ def kraken_order(price, side, altSymbol, altMarket):
 		"ordertype": "market",
     	"type": side,
 	    "volume": volume,
-    	"pair": (altSymbol + altMarket)
+    	"pair": (altSymbol + market)
 		})
 	return resp.json()
 
