@@ -100,10 +100,10 @@ class Bot(BoxLayout):
 	inSellPeriod = BooleanProperty(False)
 	inBuyPeriod = BooleanProperty(False)
 
-	rsiPeriodLength = NumericProperty(4)
+	rsiPeriodLength = NumericProperty(6)
 	rsiUpperBound = NumericProperty(70.0)
 	rsiLowerBound = NumericProperty(30.0)
-	bbPeriodLength = NumericProperty(6)
+	bbPeriodLength = NumericProperty(34)
 	bbLevel = NumericProperty(2.75)
 
 	# Sets stopLoss limits.
@@ -154,7 +154,7 @@ class Bot(BoxLayout):
 				if (ratesRsi.iloc[-1] <= self.rsiUpperBound) and (rates["High"].iloc[-1] <= bbUpper.iloc[-1]):
 					if self.stopLossUpper == 0.0:
 						create_order(rates["Close"].iloc[-1], "sell", altSymbol, altMarket, market)
-						self.stopLossUpper = max(bbMiddle.iloc[-1], rates["High"].iloc[-1]) * (1.0 + stopLossPortion)
+						self.stopLossUpper = rates["High"].iloc[-1] * (1.0 + stopLossPortion)
 					else:
 						print(Fore.RED + "***double-sell***" + Style.RESET_ALL)
 					self.inSellPeriod = False
@@ -169,26 +169,26 @@ class Bot(BoxLayout):
 				if (ratesRsi.iloc[-1] >= self.rsiLowerBound) and (rates["Low"].iloc[-1] >= bbLower.iloc[-1]):
 					if self.stopLossLower == 0.0:
 						create_order(rates["Close"].iloc[-1], "buy", altSymbol, altMarket, market)
-						self.stopLossLower = min(bbMiddle.iloc[-1], rates["Low"].iloc[-1]) * (1.0 - stopLossPortion)
+						self.stopLossLower = rates["Low"].iloc[-1] * (1.0 - stopLossPortion)
 					else:
 						print(Fore.RED + "***double-buy***" + Style.RESET_ALL)
 					self.inBuyPeriod = False
 					self.stopLossUpper = 0.0
 
 			if self.stopLossLower > 0.0:
-				if (min(bbMiddle.iloc[-2], rates["Low"].iloc[-2]) * (1.0 - stopLossPortion)) > self.stopLossLower:
-					self.stopLossLower = min(bbMiddle.iloc[-2], rates["Low"].iloc[-2]) * (1.0 - stopLossPortion)
+				if (rates["Low"].iloc[-2] * (1.0 - stopLossPortion)) > self.stopLossLower:
+					self.stopLossLower = rates["Low"].iloc[-2] * (1.0 - stopLossPortion)
 				if rates["Low"].iloc[-1] < self.stopLossLower:
 					create_order(rates["Close"].iloc[-1], "sell", altSymbol, altMarket, market)
-					self.stopLossUpper = max(bbMiddle.iloc[-1], rates["High"].iloc[-1]) * (1.0 + stopLossPortion)
+					self.stopLossUpper = rates["High"].iloc[-1] * (1.0 + stopLossPortion)
 					self.stopLossLower = 0.0
 
 			if self.stopLossUpper > 0.0:
-				if (max(bbMiddle.iloc[-2], rates["High"].iloc[-2]) * (1.0 + stopLossPortion)) < self.stopLossUpper:
-					self.stopLossUpper = max(bbMiddle.iloc[-2], rates["High"].iloc[-2]) * (1.0 + stopLossPortion)
+				if (rates["High"].iloc[-2] * (1.0 + stopLossPortion)) < self.stopLossUpper:
+					self.stopLossUpper = rates["High"].iloc[-2] * (1.0 + stopLossPortion)
 				if rates["High"].iloc[-1] > self.stopLossUpper:
 					create_order(rates["Close"].iloc[-1], "buy", altSymbol, altMarket, market)
-					self.stopLossLower = min(bbMiddle.iloc[-1], rates["Low"].iloc[-1]) * (1.0 - stopLossPortion)
+					self.stopLossLower = rates["Low"].iloc[-1] * (1.0 - stopLossPortion)
 					self.stopLossUpper = 0.0
 
 		# Catches error in Strategy thread and prints to screen
@@ -225,13 +225,13 @@ class Bot(BoxLayout):
 
 			ratesHl2Series = pd.Series((rates["High"] + rates["Low"]).div(2).values, index=rates.index)
 			
-			for thisRsiPeriodLength in range(3, 11):
+			for thisRsiPeriodLength in range(4, 12):
 				# Set RSI values
 				ratesRsiSeries = get_rsi(ratesHl2Series, thisRsiPeriodLength)
 
-				for thisRsiUpperBound in range(84, 62, -2):
-					for thisRsiLowerBound in range(16, 38, 2):
-						for thisBbPeriodLength in range(thisRsiPeriodLength, 18, 2):
+				for thisRsiUpperBound in range(84, 68, -2):
+					for thisRsiLowerBound in range(16, 32, 2):
+						for thisBbPeriodLength in range(thisRsiPeriodLength, 36, 2):
 							# Convert Pandas series to lists
 							ratesHigh = rates["High"].tolist()[(thisBbPeriodLength - 1):]
 							ratesLow = rates["Low"].tolist()[(thisBbPeriodLength - 1):]
@@ -239,7 +239,7 @@ class Bot(BoxLayout):
 							ratesRsi = ratesRsiSeries.tolist()[(thisBbPeriodLength - thisRsiPeriodLength):]
 							dates = rates.index.tolist()[(thisBbPeriodLength - 1):]
 					
-							for bbLevelDouble in range(7, 14):
+							for bbLevelDouble in range(6, 12):
 								usdStart = 100.0
 								cryptoStart = 100.0 / ratesHl2[0]
 								usdEnd = usdStart
@@ -266,7 +266,7 @@ class Bot(BoxLayout):
 											usdEnd = usdEnd + (cryptoEnd * ratesHl2[i] * .995 * portion)
 											cryptoEnd = cryptoEnd * (1.0 - portion)
 											if stopLossUpper == 0.0:
-												stopLossUpper = max(bbMiddle[i], ratesHigh[i]) * (1.0 + stopLossPortion)
+												stopLossUpper = ratesHigh[i] * (1.0 + stopLossPortion)
 											stopLossLower = 0.0
 											thisInSellPeriod = False
 
@@ -278,26 +278,26 @@ class Bot(BoxLayout):
 											cryptoEnd = cryptoEnd + (usdEnd * .995 * portion / ratesHl2[i])
 											usdEnd = usdEnd * (1.0 - portion)
 											if stopLossLower == 0.0:
-												stopLossLower = min(bbMiddle[i], ratesLow[i]) * (1.0 - stopLossPortion)
+												stopLossLower = ratesLow[i] * (1.0 - stopLossPortion)
 											stopLossUpper = 0.0
 											thisInBuyPeriod = False
 
 									if stopLossLower > 0.0:
-										if (min(bbMiddle[i], ratesLow[i]) * (1.0 - stopLossPortion)) > stopLossLower:
-											stopLossLower = min(bbMiddle[i], ratesLow[i]) * (1.0 - stopLossPortion)
+										if (ratesLow[i] * (1.0 - stopLossPortion)) > stopLossLower:
+											stopLossLower = ratesLow[i] * (1.0 - stopLossPortion)
 										if ratesLow[i] < stopLossLower:
 											usdEnd = usdEnd + (cryptoEnd * ratesHl2[i] * .995 * portion)
 											cryptoEnd = cryptoEnd * (1.0 - portion)
-											stopLossUpper = max(bbMiddle[i], ratesHigh[i]) * (1.0 + stopLossPortion)
+											stopLossUpper = ratesHigh[i] * (1.0 + stopLossPortion)
 											stopLossLower = 0.0
 
 									if stopLossUpper > 0.0:
-										if (max(bbMiddle[i], ratesHigh[i]) * (1.0 + stopLossPortion)) < stopLossUpper:
-											stopLossUpper = max(bbMiddle[i], ratesHigh[i]) * (1.0 + stopLossPortion)
+										if (ratesHigh[i] * (1.0 + stopLossPortion)) < stopLossUpper:
+											stopLossUpper = ratesHigh[i] * (1.0 + stopLossPortion)
 										if ratesHigh[i] > stopLossUpper:
 											cryptoEnd = cryptoEnd + (usdEnd * .995 * portion / ratesHl2[i])
 											usdEnd = usdEnd * (1.0 - portion)
-											stopLossLower = min(bbMiddle[i], ratesLow[i]) * (1.0 - stopLossPortion)
+											stopLossLower = ratesLow[i] * (1.0 - stopLossPortion)
 											stopLossUpper = 0.0
 
 								walletStart = 200.0
@@ -538,14 +538,24 @@ class MainApp(MDApp):
 		Sets initial Bot parameters.
 		"""
 
-		rates = get_historic_rates(symbol, timeSlice).tail(150)
+		rates = get_historic_rates(symbol, timeSlice).tail(250)
 
 		if timeSlice <= 5:
 			self.analyzeTime = ((int(time.strftime("%-M")) // 20) * 20) + 20
 			if self.analyzeTime == 60:
 				self.analyzeTime = self.analyzeTime - 60
-		else:
+		elif timeSlice == 15:
 			self.analyzeTime = time.strftime("%H")
+		else:
+			if int(time.strftime("%H")) < 6:
+				self.analyzeTime = 6
+			elif int(time.strftime("%H")) < 12:
+				self.analyzeTime = 12
+			elif int(time.strftime("%H")) < 18:
+				self.analyzeTime = 18
+			else:
+				self.analyzeTime = 0
+		print("Analyze at hour {}".format(self.analyzeTime))
 
 		self.root.ids.symbol_pair_var.text = symbol + "-" + market
 		self.root.run_strategy_rsi_bb(rates)
@@ -558,12 +568,12 @@ class MainApp(MDApp):
 		"""
 
 		try:
-			rates = get_historic_rates(symbol, timeSlice).tail(150)
+			rates = get_historic_rates(symbol, timeSlice).tail(250)
 			self.root.run_strategy_rsi_bb(rates)
 			self.root.update_variables(rates)
 
 			# ANALYZE THREAD
-			if timeSlice <=5:
+			if timeSlice <= 5:
 				if int(time.strftime("%-M")) == self.analyzeTime:
 					self.analyzeTime += 20
 					if self.analyzeTime >= 60:
@@ -571,11 +581,21 @@ class MainApp(MDApp):
 					analyzeThread = threading.Thread(target=self.root.analyze_rsi_bb, args=(rates,), daemon=True)
 					analyzeThread.start()
 
-			else:	
+			elif timeSlice == 15:	
 				if time.strftime("%H") != self.analyzeTime:
 					self.analyzeTime = time.strftime("%H")
 					analyzeThread = threading.Thread(target=self.root.analyze_rsi_bb, args=(rates,), daemon=True)
 					analyzeThread.start()
+
+			else:
+				if int(time.strftime("%H")) == self.analyzeTime:
+					if self.analyzeTime == 18:
+						self.analyzeTime = 0;
+					else:
+						self.analyzeTime += 6
+					analyzeThread = threading.Thread(target=self.root.analyze_rsi_bb, args=(rates,), daemon=True)
+					analyzeThread.start()
+
 
 		except Exception as err:
 			send_msg("UPDATE-SCREEN-ERROR\nCheck to see if bot is functioning")
