@@ -140,18 +140,19 @@ class Bot(BoxLayout):
 
 		try:
 			# Get rates, high/low average, rsi values and bb bands
-			ratesHl2 = pd.Series((rates["High"] + rates["Low"]).div(2).values, index=rates.index)
+			#ratesHl2 = pd.Series((rates["High"] + rates["Low"]).div(2).values, index=rates.index)
+			ratesHl2 = rates["Close"]
 			ratesRsi = get_rsi(ratesHl2, self.rsiPeriodLength)
 			(bbUpper, bbMiddle, bbLower) = get_bb(ratesHl2, self.bbPeriodLength, self.bbLevel)
 
 			# Determines sell, buy, or hold action for bot
 			if not self.inSellPeriod:
-				if (ratesRsi.iloc[-1] > self.rsiUpperBound) and (rates["High"].iloc[-1] > bbUpper.iloc[-1]):
+				if (ratesRsi.iloc[-2] > self.rsiUpperBound) and (rates["High"].iloc[-2] > bbUpper.iloc[-2]):
 					send_msg("Sell signal triggered")
 					print(Fore.GREEN + "Sell signal" + Style.RESET_ALL)
 					self.inSellPeriod = True
 			else:
-				if (ratesRsi.iloc[-1] <= self.rsiUpperBound) and (rates["High"].iloc[-1] <= bbUpper.iloc[-1]):
+				if (ratesRsi.iloc[-1] <= (self.rsiUpperBound - 3)) and (rates["High"].iloc[-1] <= bbUpper.iloc[-1]):
 					if self.stopLossUpper == 0.0:
 						create_order(rates["Close"].iloc[-1], "sell", altSymbol, altMarket, market)
 						self.stopLossUpper = rates["High"].iloc[-1] * (1.0 + stopLossPortion)
@@ -161,12 +162,12 @@ class Bot(BoxLayout):
 					self.stopLossLower = 0.0
 					
 			if not self.inBuyPeriod:
-				if (ratesRsi.iloc[-1] < self.rsiLowerBound) and (rates["Low"].iloc[-1] < bbLower.iloc[-1]):
+				if (ratesRsi.iloc[-2] < self.rsiLowerBound) and (rates["Low"].iloc[-2] < bbLower.iloc[-2]):
 					send_msg("Buy signal triggered")
 					print(Fore.GREEN + "Buy signal" + Style.RESET_ALL)
 					self.inBuyPeriod = True
 			else:
-				if (ratesRsi.iloc[-1] >= self.rsiLowerBound) and (rates["Low"].iloc[-1] >= bbLower.iloc[-1]):
+				if (ratesRsi.iloc[-1] >= (self.rsiLowerBound + 3)) and (rates["Low"].iloc[-1] >= bbLower.iloc[-1]):
 					if self.stopLossLower == 0.0:
 						create_order(rates["Close"].iloc[-1], "buy", altSymbol, altMarket, market)
 						self.stopLossLower = rates["Low"].iloc[-1] * (1.0 - stopLossPortion)
@@ -223,14 +224,15 @@ class Bot(BoxLayout):
 			currentTopParameters = []
 			topParameters = []
 
-			ratesHl2Series = pd.Series((rates["High"] + rates["Low"]).div(2).values, index=rates.index)
+			#ratesHl2Series = pd.Series((rates["High"] + rates["Low"]).div(2).values, index=rates.index)
+			ratesHl2Series = rates["Close"]
 			
-			for thisRsiPeriodLength in range(4, 12):
+			for thisRsiPeriodLength in range(4, 13):
 				# Set RSI values
 				ratesRsiSeries = get_rsi(ratesHl2Series, thisRsiPeriodLength)
 
-				for thisRsiUpperBound in range(84, 68, -2):
-					for thisRsiLowerBound in range(16, 32, 2):
+				for thisRsiUpperBound in range(80, 66, -2):
+					for thisRsiLowerBound in range(20, 34, 2):
 						for thisBbPeriodLength in range(thisRsiPeriodLength, 36, 2):
 							# Convert Pandas series to lists
 							ratesHigh = rates["High"].tolist()[(thisBbPeriodLength - 1):]
@@ -262,7 +264,7 @@ class Bot(BoxLayout):
 										if (ratesRsi[i] > thisRsiUpperBound) and (ratesHigh[i] > bbUpper[i]):
 											thisInSellPeriod = True
 									else:
-										if (ratesRsi[i] <= thisRsiUpperBound) and (ratesHigh[i] <= bbUpper[i]):
+										if (ratesRsi[i] <= (thisRsiUpperBound - 3)) and (ratesHigh[i] <= bbUpper[i]):
 											usdEnd = usdEnd + (cryptoEnd * ratesHl2[i] * .995 * portion)
 											cryptoEnd = cryptoEnd * (1.0 - portion)
 											if stopLossUpper == 0.0:
@@ -274,7 +276,7 @@ class Bot(BoxLayout):
 										if (ratesRsi[i] < thisRsiLowerBound) and (ratesLow[i] < bbLower[i]):
 											thisInBuyPeriod = True
 									else:
-										if (ratesRsi[i] >= thisRsiLowerBound) and (ratesLow[i] >= bbLower[i]):
+										if (ratesRsi[i] >= (thisRsiLowerBound + 3)) and (ratesLow[i] >= bbLower[i]):
 											cryptoEnd = cryptoEnd + (usdEnd * .995 * portion / ratesHl2[i])
 											usdEnd = usdEnd * (1.0 - portion)
 											if stopLossLower == 0.0:
@@ -376,7 +378,8 @@ class Bot(BoxLayout):
 			Rates of a cryptocurrency in chronological order.
 		"""
 
-		ratesHl2 = pd.Series((rates["High"] + rates["Low"]).div(2).values, index=rates.index)
+		#ratesHl2 = pd.Series((rates["High"] + rates["Low"]).div(2).values, index=rates.index)
+		ratesHl2 = rates["Close"]
 		ratesRsi = get_rsi(ratesHl2, self.rsiPeriodLength)
 		(bbUpper, bbMiddle, bbLower) = get_bb(ratesHl2, self.bbPeriodLength, self.bbLevel)
 
@@ -526,7 +529,7 @@ class MainApp(MDApp):
 		Sets the Kicy clock interval and loads the layout from Bot.kv file.
 		"""
 
-		Clock.schedule_interval(lambda dt: self.update_screen(), 5)
+		Clock.schedule_interval(lambda dt: self.update_screen(), 10)
 		self.theme_cls.theme_style = "Dark"
 		self.theme_cls.primary_palette = "BlueGray"
 		Builder.load_file("Bot.kv")
