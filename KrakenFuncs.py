@@ -53,10 +53,10 @@ def kraken_order(price, side, altSymbol, altMarket, market):
 	"""
 
 	if side == "sell":
-		volume = kraken_get_balance(altSymbol)
+		volume = float(kraken_get_balance(altSymbol)) * 0.99
 	elif side == "buy":
-		volume = float(kraken_get_balance(altMarket)) / price
-		volume = str(volume)[:10]
+		volume = float(kraken_get_balance(altMarket)) * 0.99 / price
+	volume = str(volume)[:10]
 	resp = kraken_request("/0/private/AddOrder", {
 		"nonce": str(int(1000*time.time())),
 		"ordertype": "market",
